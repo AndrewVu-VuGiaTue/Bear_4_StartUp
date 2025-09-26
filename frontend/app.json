@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Bear",
+    "slug": "bear-app",
+    "scheme": "bear",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffe6ee"
+    },
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "http://192.168.2.4:4000"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffe6ee"
+      },
+      "package": "com.bear.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
