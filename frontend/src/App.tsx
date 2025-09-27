@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import { StatusBar } from 'expo-status-bar';
+import MainTabs from './navigation/MainTabs';
+import { HealthProvider } from './context/HealthContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -22,12 +24,15 @@ const PinkTheme = {
 
 export default function App() {
   return (
-    <NavigationContainer theme={PinkTheme}>
-      <StatusBar style="dark" />
-      <Stack.Navigator>
-        <Stack.Screen name="Sign In" component={SignInScreen} />
-        <Stack.Screen name="Sign Up" component={SignUpScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <HealthProvider>
+      <NavigationContainer theme={PinkTheme}>
+        <StatusBar style="dark" />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Sign In" component={SignInScreen} />
+          <Stack.Screen name="Sign Up" component={SignUpScreen} />
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </HealthProvider>
   );
 }

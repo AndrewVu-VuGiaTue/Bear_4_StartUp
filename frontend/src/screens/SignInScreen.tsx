@@ -15,6 +15,7 @@ export default function SignInScreen({ navigation }: any) {
       setLoading(true);
       const res = await api.post('/auth/signin', { identifier, password });
       Alert.alert('Success', `Welcome, ${res.data.user.displayName}!`);
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Sign in failed';
       Alert.alert('Error', msg);
