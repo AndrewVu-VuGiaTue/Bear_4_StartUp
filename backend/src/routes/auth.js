@@ -3,8 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import OtpCode from '../models/OtpCode.js';
-import { sendOtpEmail } from '../utils/email.js';
+// OTP disabled: no OtpCode or email sending
 
 const router = Router();
 
@@ -27,23 +26,24 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { username, displayName, email, password } = req.body;
+    const uname = String(username || '').trim().toLowerCase();
+    const dname = String(displayName || '').trim();
+    const em = String(email || '').trim().toLowerCase();
 
     try {
-      const exists = await User.findOne({ $or: [{ username }, { email }] });
+      const exists = await User.findOne({ $or: [{ username: uname }, { email: em }] });
       if (exists) return res.status(409).json({ message: 'Username or email already in use' });
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await User.create({ username, displayName, email, passwordHash, isVerified: false });
+      // Mark user as verified immediately (OTP flow disabled)
+      const user = await User.create({ username: uname, displayName: dname, email: em, passwordHash, isVerified: true });
 
-      // Create OTP
-      const code = generateOtp();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      await OtpCode.create({ userId: user._id, code, expiresAt });
-
-      await sendOtpEmail(email, code);
-
-      return res.status(201).json({ message: 'Sign up successful. Please verify OTP sent to your email.', userId: user._id });
+      return res.status(201).json({ message: 'Sign up successful.', userId: user._id });
     } catch (err) {
+      // Handle duplicate key error gracefully
+      if (err && err.code === 11000) {
+        return res.status(409).json({ message: 'Username or email already in use' });
+      }
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -51,42 +51,9 @@ router.post(
 );
 
 // POST /verify-otp
-router.post(
-  '/verify-otp',
-  [
-    body('email').optional().isEmail(),
-    body('userId').optional().isString(),
-    body('code').isLength({ min: 6, max: 6 }).withMessage('Code must be 6 digits'),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-    const { email, userId, code } = req.body;
-
-    try {
-      let user = null;
-      if (userId) user = await User.findById(userId);
-      else if (email) user = await User.findOne({ email });
-      if (!user) return res.status(404).json({ message: 'User not found' });
-
-      const otp = await OtpCode.findOne({ userId: user._id, code, used: false }).sort({ createdAt: -1 });
-      if (!otp) return res.status(400).json({ message: 'Invalid code' });
-      if (otp.expiresAt.getTime() < Date.now()) return res.status(400).json({ message: 'Code expired' });
-
-      user.isVerified = true;
-      await user.save();
-
-      otp.used = true;
-      await otp.save();
-
-      return res.json({ message: 'Verification successful' });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-);
+router.post('/verify-otp', async (_req, res) => {
+  return res.status(410).json({ message: 'OTP verification is disabled.' });
+});
 
 // POST /signin
 router.post(
@@ -107,7 +74,7 @@ router.post(
       });
       if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-      if (!user.isVerified) return res.status(403).json({ message: 'Account not verified. Please check your email.' });
+      // OTP disabled: user is verified on sign up
 
       const match = await bcrypt.compare(password, user.passwordHash);
       if (!match) return res.status(401).json({ message: 'Invalid credentials' });

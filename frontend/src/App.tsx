@@ -3,7 +3,6 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
-import OtpScreen from './screens/OtpScreen';
 import { StatusBar } from 'expo-status-bar';
 
 const Stack = createNativeStackNavigator();
@@ -28,7 +27,6 @@ export default function App() {
       <Stack.Navigator>
         <Stack.Screen name="Sign In" component={SignInScreen} />
         <Stack.Screen name="Sign Up" component={SignUpScreen} />
-        <Stack.Screen name="Enter OTP" component={OtpScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -10,7 +10,7 @@
       "backgroundColor": "#ffe6ee"
     },
     "extra": {
-      "EXPO_PUBLIC_API_URL": "http://192.168.2.4:4000"
+      "EXPO_PUBLIC_API_URL": "https://bear-backend-xe69.onrender.com"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
