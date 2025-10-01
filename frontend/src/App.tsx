@@ -16,6 +16,7 @@ import DeviceSelectionScreen from './screens/DeviceSelectionScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import VerifyOTPScreen from './screens/VerifyOTPScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import SignUpOTPScreen from './screens/SignUpOTPScreen';
 import { SettingsProvider, useSettings, themeFromAppearance } from './context/SettingsContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -30,6 +31,7 @@ function AppShell() {
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Sign In" component={SignInScreen} />
             <Stack.Screen name="Sign Up" component={SignUpScreen} />
+            <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />

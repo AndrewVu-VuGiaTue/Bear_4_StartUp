@@ -26,8 +26,12 @@ export default function SignUpScreen({ navigation }: any) {
         password,
         confirmPassword,
       });
-      Alert.alert('Success', 'Sign up successful. You can now sign in.');
-      navigation.navigate('Sign In');
+      Alert.alert('Success', 'OTP has been sent to your email. Please verify to complete signup.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('SignUpOTP', { email }),
+        },
+      ]);
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Sign up failed';
       Alert.alert('Error', msg);

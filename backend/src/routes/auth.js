@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
+import { sendOtpEmail } from '../config/email.js';
 
 const router = Router();
 
@@ -34,16 +35,135 @@ router.post(
       const exists = await User.findOne({ $or: [{ username: uname }, { email: em }] });
       if (exists) return res.status(409).json({ message: 'Username or email already in use' });
 
-      const passwordHash = await bcrypt.hash(password, 10);
-      // Mark user as verified immediately (OTP flow disabled)
-      const user = await User.create({ username: uname, displayName: dname, email: em, passwordHash, isVerified: true });
+      // Generate OTP
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-      return res.status(201).json({ message: 'Sign up successful.', userId: user._id });
+      // Store signup data temporarily with OTP (we'll use a temp user with isVerified: false)
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await User.create({ 
+        username: uname, 
+        displayName: dname, 
+        email: em, 
+        passwordHash, 
+        isVerified: false  // Not verified until OTP confirmed
+      });
+
+      // Save OTP
+      await OtpCode.create({
+        userId: user._id,
+        code: otp,
+        expiresAt,
+        used: false,
+      });
+
+      // Send OTP email
+      await sendOtpEmail(em, otp, 'signup');
+
+      return res.status(201).json({ 
+        message: 'OTP has been sent to your email. Please verify to complete signup.',
+        userId: user._id,
+        email: em
+      });
     } catch (err) {
       // Handle duplicate key error gracefully
       if (err && err.code === 11000) {
         return res.status(409).json({ message: 'Username or email already in use' });
       }
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+// POST /verify-signup-otp - Verify OTP for signup
+router.post(
+  '/verify-signup-otp',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { email, otp } = req.body;
+    const em = String(email || '').trim().toLowerCase();
+
+    try {
+      const user = await User.findOne({ email: em });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      if (user.isVerified) {
+        return res.status(400).json({ message: 'Email already verified' });
+      }
+
+      const otpRecord = await OtpCode.findOne({
+        userId: user._id,
+        code: otp,
+        used: false,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!otpRecord) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
+
+      // Mark user as verified
+      user.isVerified = true;
+      await user.save();
+
+      // Mark OTP as used
+      otpRecord.used = true;
+      await otpRecord.save();
+
+      return res.json({ message: 'Email verified successfully. You can now sign in.' });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+// POST /resend-signup-otp - Resend OTP for signup
+router.post(
+  '/resend-signup-otp',
+  [body('email').isEmail().withMessage('Valid email is required')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { email } = req.body;
+    const em = String(email || '').trim().toLowerCase();
+
+    try {
+      const user = await User.findOne({ email: em });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      if (user.isVerified) {
+        return res.status(400).json({ message: 'Email already verified' });
+      }
+
+      // Generate new OTP
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      // Delete old OTPs
+      await OtpCode.deleteMany({ userId: user._id });
+
+      // Save new OTP
+      await OtpCode.create({
+        userId: user._id,
+        code: otp,
+        expiresAt,
+        used: false,
+      });
+
+      // Send OTP email
+      await sendOtpEmail(em, otp, 'signup');
+
+      return res.json({ message: 'OTP has been resent to your email.' });
+    } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -83,8 +203,8 @@ router.post(
         used: false,
       });
 
-      // TODO: Send OTP via email (for now, just log it)
-      console.log(`[OTP] User: ${user.email}, Code: ${otp}`);
+      // Send OTP via email
+      await sendOtpEmail(em, otp, 'password reset');
 
       return res.json({ message: 'OTP has been sent to your email.' });
     } catch (err) {
@@ -197,7 +317,10 @@ router.post(
       });
       if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-      // OTP disabled: user is verified on sign up
+      // Check if user verified their email
+      if (!user.isVerified) {
+        return res.status(403).json({ message: 'Please verify your email before signing in' });
+      }
 
       const match = await bcrypt.compare(password, user.passwordHash);
       if (!match) return res.status(401).json({ message: 'Invalid credentials' });

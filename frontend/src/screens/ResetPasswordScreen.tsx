@@ -63,6 +63,7 @@ export default function ResetPasswordScreen() {
         onChangeText={setNewPassword}
         placeholder="Enter new password"
         secureTextEntry
+        secureToggle
       />
 
       <ThemedTextInput
@@ -71,6 +72,7 @@ export default function ResetPasswordScreen() {
         onChangeText={setConfirmPassword}
         placeholder="Confirm new password"
         secureTextEntry
+        secureToggle
       />
 
       <PrimaryButton title={loading ? 'Resetting...' : 'Reset Password'} onPress={handleResetPassword} disabled={loading} />
