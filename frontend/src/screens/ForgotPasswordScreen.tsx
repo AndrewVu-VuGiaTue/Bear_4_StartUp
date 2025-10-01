@@ -20,12 +20,16 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       const response = await api.post('/auth/forgot-password', { email });
-      Alert.alert('Success', 'A 6-digit OTP code has been sent to your email', [
-        {
-          text: 'OK',
-          onPress: () => (navigation as any).navigate('VerifyOTP', { email }),
-        },
-      ]);
+      Alert.alert(
+        'OTP Sent!', 
+        'A 6-digit OTP code has been sent to your email.\n\n💡 Tip: Check your Spam/Junk folder if you don\'t see it in your inbox.',
+        [
+          {
+            text: 'OK',
+            onPress: () => (navigation as any).navigate('VerifyOTP', { email }),
+          },
+        ]
+      );
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Failed to send OTP';
       Alert.alert('Error', msg);

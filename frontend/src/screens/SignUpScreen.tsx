@@ -26,12 +26,16 @@ export default function SignUpScreen({ navigation }: any) {
         password,
         confirmPassword,
       });
-      Alert.alert('Success', 'OTP has been sent to your email. Please verify to complete signup.', [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('SignUpOTP', { email }),
-        },
-      ]);
+      Alert.alert(
+        'OTP Sent!', 
+        'OTP has been sent to your email. Please verify to complete signup.\n\n💡 Tip: Check your Spam/Junk folder if you don\'t see it in your inbox.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('SignUpOTP', { email }),
+          },
+        ]
+      );
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Sign up failed';
       Alert.alert('Error', msg);

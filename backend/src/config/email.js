@@ -23,9 +23,29 @@ export async function sendOtpEmail(email, otp, purpose = 'password reset') {
     to: email,
     from: {
       email: FROM_EMAIL,
-      name: 'BEAR Health'
+      name: 'BEAR'
     },
+    replyTo: FROM_EMAIL,
     subject: purpose === 'signup' ? 'BEAR - Verify Your Email' : 'BEAR - Password Reset OTP',
+    // Plain text version (important for spam filters)
+    text: `
+BEAR Health
+
+${purpose === 'signup' ? 'Welcome to BEAR!' : 'Password Reset Request'}
+
+${purpose === 'signup' 
+  ? 'Thank you for signing up! Please use the following OTP code to verify your email address:' 
+  : 'You requested to reset your password. Please use the following OTP code:'}
+
+Your OTP Code: ${otp}
+
+This code will expire in 5 minutes.
+
+If you didn't request this, please ignore this email or contact support if you have concerns.
+
+© 2025 BEAR Health. All rights reserved.
+    `.trim(),
+    // HTML version
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: #B31B1B; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
@@ -54,9 +74,19 @@ export async function sendOtpEmail(email, otp, purpose = 'password reset') {
         </div>
         <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
           <p>© 2025 BEAR Health. All rights reserved.</p>
+          <p style="margin-top: 10px;">
+            This is a transactional email. You received this because you requested it from the BEAR Health app.
+          </p>
         </div>
       </div>
     `,
+    // Email categories for SendGrid tracking
+    categories: ['otp', purpose === 'signup' ? 'signup' : 'password-reset'],
+    // Custom tracking settings
+    trackingSettings: {
+      clickTracking: { enable: false },
+      openTracking: { enable: false },
+    },
   };
 
   try {
