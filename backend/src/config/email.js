@@ -1,12 +1,20 @@
 import nodemailer from 'nodemailer';
 
-// Email configuration
+// Email configuration - Try multiple ports for Render compatibility
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587, // TLS port (more likely to work on Render)
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER || 'buddyforemergencyaandr@gmail.com',
     pass: process.env.EMAIL_APP_PASSWORD || 'rupy ibwl xsdp abfv',
   },
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certificates
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
 // Send OTP email
@@ -49,11 +57,25 @@ export async function sendOtpEmail(email, otp, purpose = 'password reset') {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`[EMAIL] OTP sent to ${email} for ${purpose}`);
+    // Verify connection first
+    await transporter.verify();
+    console.log('[EMAIL] SMTP connection verified');
+    
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL] OTP sent to ${email} for ${purpose}. MessageId: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('[EMAIL] Failed to send OTP:', error);
+    console.error('[EMAIL] Failed to send OTP:', error.message);
+    console.error('[EMAIL] Error code:', error.code);
+    console.error('[EMAIL] Error command:', error.command);
+    
+    // Log for debugging
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
+      console.error('[EMAIL] Connection timeout - SMTP port may be blocked on this server');
+      console.error('[EMAIL] Consider using a different email service (SendGrid, Resend, etc.)');
+    }
+    
     return false;
   }
 }
