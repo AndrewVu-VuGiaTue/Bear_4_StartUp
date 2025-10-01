@@ -1,27 +1,30 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
-// Email configuration - Try multiple ports for Render compatibility
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587, // TLS port (more likely to work on Render)
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER || 'buddyforemergencyaandr@gmail.com',
-    pass: process.env.EMAIL_APP_PASSWORD || 'rupy ibwl xsdp abfv',
-  },
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed certificates
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-});
+// Initialize SendGrid with API key
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'buddyforemergencyaandr@gmail.com';
 
-// Send OTP email
+if (!SENDGRID_API_KEY) {
+  console.warn('[EMAIL] ⚠️  SENDGRID_API_KEY not found in environment variables!');
+  console.warn('[EMAIL] Email sending will fail until you add SENDGRID_API_KEY to your .env file');
+} else {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('[EMAIL] ✅ SendGrid initialized successfully');
+}
+
+// Send OTP email using SendGrid
 export async function sendOtpEmail(email, otp, purpose = 'password reset') {
+  if (!SENDGRID_API_KEY) {
+    console.error('[EMAIL] ❌ Cannot send email: SENDGRID_API_KEY not configured');
+    return false;
+  }
+
   const mailOptions = {
-    from: '"BEAR Health" <buddyforemergencyaandr@gmail.com>',
     to: email,
+    from: {
+      email: FROM_EMAIL,
+      name: 'BEAR Health'
+    },
     subject: purpose === 'signup' ? 'BEAR - Verify Your Email' : 'BEAR - Password Reset OTP',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
@@ -57,27 +60,22 @@ export async function sendOtpEmail(email, otp, purpose = 'password reset') {
   };
 
   try {
-    // Verify connection first
-    await transporter.verify();
-    console.log('[EMAIL] SMTP connection verified');
-    
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[EMAIL] OTP sent to ${email} for ${purpose}. MessageId: ${info.messageId}`);
+    // Send email via SendGrid
+    const response = await sgMail.send(mailOptions);
+    console.log(`[EMAIL] ✅ OTP sent to ${email} for ${purpose}`);
+    console.log(`[EMAIL] SendGrid Response: ${response[0].statusCode}`);
     return true;
   } catch (error) {
-    console.error('[EMAIL] Failed to send OTP:', error.message);
-    console.error('[EMAIL] Error code:', error.code);
-    console.error('[EMAIL] Error command:', error.command);
+    console.error('[EMAIL] ❌ Failed to send OTP:', error.message);
     
-    // Log for debugging
-    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
-      console.error('[EMAIL] Connection timeout - SMTP port may be blocked on this server');
-      console.error('[EMAIL] Consider using a different email service (SendGrid, Resend, etc.)');
+    // Log detailed error for debugging
+    if (error.response) {
+      console.error('[EMAIL] SendGrid Error Body:', error.response.body);
+      console.error('[EMAIL] SendGrid Error Code:', error.code);
     }
     
     return false;
   }
 }
 
-export default transporter;
+export default sgMail;
