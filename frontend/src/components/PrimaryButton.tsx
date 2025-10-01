@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '@react-navigation/native';
 
 interface Props {
   title: string;
@@ -10,27 +10,26 @@ interface Props {
 }
 
 export default function PrimaryButton({ title, onPress, style, disabled }: Props) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
       disabled={disabled}
-      style={[styles.button, disabled && { opacity: 0.6 }, style]}
+      style={[styles.button, { backgroundColor: (colors as any).primary }, disabled && { opacity: 0.6 }, style]}
     >
-      <Text style={styles.text}>{title}</Text>
+      <Text style={[styles.text, { color: (colors as any).white || '#fff' }]}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
   },
   text: {
-    color: '#fff',
     fontWeight: '700',
     fontSize: 16,
   },

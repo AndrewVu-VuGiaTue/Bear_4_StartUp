@@ -4,8 +4,10 @@ import ThemedTextInput from '../components/ThemedTextInput';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignInScreen({ navigation }: any) {
+  const auth = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,16 @@ export default function SignInScreen({ navigation }: any) {
     try {
       setLoading(true);
       const res = await api.post('/auth/signin', { identifier, password });
-      Alert.alert('Success', `Welcome, ${res.data.user.displayName}!`);
+      const user = res?.data?.user;
+      const token = res?.data?.token;
+      if (user) auth.setSession({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl || null,
+      }, token);
+      Alert.alert('Success', `Welcome, ${user?.displayName || user?.username}!`);
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Sign in failed';
@@ -26,7 +37,7 @@ export default function SignInScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Bear</Text>
+      <Text style={styles.title}>Welcome to BEAR</Text>
       <Text style={styles.subtitle}>Please sign in to continue</Text>
 
       <ThemedTextInput
@@ -34,6 +45,8 @@ export default function SignInScreen({ navigation }: any) {
         value={identifier}
         onChangeText={setIdentifier}
         placeholder="Enter your username or email"
+        autoCapitalize="none"
+        autoCorrect={false}
       />
 
       <ThemedTextInput
@@ -42,9 +55,18 @@ export default function SignInScreen({ navigation }: any) {
         onChangeText={setPassword}
         placeholder="Enter your password"
         secureTextEntry
+        secureToggle
+        textContentType="password"
+        autoCapitalize="none"
+        autoCorrect={false}
       />
 
       <PrimaryButton title={loading ? 'Signing in...' : 'Sign In'} onPress={onSignIn} disabled={loading} />
+
+      <View style={{ height: 12 }} />
+      <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+        <Text style={styles.forgotLink}>Forgot your password? Create a new one</Text>
+      </TouchableOpacity>
 
       <View style={{ height: 18 }} />
       <TouchableOpacity onPress={() => navigation.navigate('Sign Up')}>
@@ -72,8 +94,15 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
   link: {
-    color: colors.secondary,
+    color: colors.primary,
     fontWeight: '600',
     textAlign: 'center',
+    fontSize: 14,
+  },
+  forgotLink: {
+    color: colors.primary,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontSize: 14,
   },
 });
