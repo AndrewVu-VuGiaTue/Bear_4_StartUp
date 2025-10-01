@@ -61,17 +61,33 @@ export async function sendOtpEmail(email, otp, purpose = 'password reset') {
 
   try {
     // Send email via SendGrid
+    console.log(`[EMAIL] 📤 Sending OTP to ${email} from ${FROM_EMAIL}...`);
     const response = await sgMail.send(mailOptions);
+    
     console.log(`[EMAIL] ✅ OTP sent to ${email} for ${purpose}`);
     console.log(`[EMAIL] SendGrid Response: ${response[0].statusCode}`);
+    console.log(`[EMAIL] Message ID: ${response[0].headers['x-message-id']}`);
+    console.log(`[EMAIL] 💡 Check SendGrid Activity: https://app.sendgrid.com/email_activity`);
+    console.log(`[EMAIL] 💡 If email not received, verify sender at: https://app.sendgrid.com/settings/sender_auth`);
+    
     return true;
   } catch (error) {
     console.error('[EMAIL] ❌ Failed to send OTP:', error.message);
     
     // Log detailed error for debugging
     if (error.response) {
-      console.error('[EMAIL] SendGrid Error Body:', error.response.body);
+      console.error('[EMAIL] SendGrid Error Body:', JSON.stringify(error.response.body, null, 2));
       console.error('[EMAIL] SendGrid Error Code:', error.code);
+      
+      // Check for common errors
+      if (error.response.body?.errors) {
+        error.response.body.errors.forEach((err) => {
+          console.error(`[EMAIL] Error: ${err.message}`);
+          if (err.message.includes('verified')) {
+            console.error('[EMAIL] 🚨 SENDER NOT VERIFIED! Go to: https://app.sendgrid.com/settings/sender_auth');
+          }
+        });
+      }
     }
     
     return false;
