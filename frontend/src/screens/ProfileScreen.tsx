@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView, Modal, Image } from 'react-native';
 import ThemedTextInput from '../components/ThemedTextInput';
 import PrimaryButton from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api/client';
 import { useTheme, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export default function ProfileScreen() {
   const { user, updateProfileLocal, token } = useAuth();
@@ -23,6 +25,7 @@ export default function ProfileScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   
   const canSavePwd = newPassword.length >= 6 && newPassword === confirmPassword;
   const authHeader = (t?: string | null) => (t ? { Authorization: `Bearer ${t}` } : undefined);
@@ -57,10 +60,40 @@ export default function ProfileScreen() {
     }
   };
 
-  const onChangeAvatar = () => {
-    setShowAvatarModal(true);
-    // TODO: Implement image picker
-    Alert.alert('Coming Soon', 'Avatar picker will be implemented soon!');
+  const onChangeAvatar = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to change your avatar.');
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        
+        // Crop to square and resize
+        const manipResult = await manipulateAsync(
+          imageUri,
+          [{ resize: { width: 400, height: 400 } }],
+          { compress: 0.8, format: SaveFormat.JPEG }
+        );
+
+        setAvatarUri(manipResult.uri);
+        Alert.alert('Success', 'Avatar updated! (Note: Avatar storage not implemented yet, will reset on app restart)');
+      }
+    } catch (error) {
+      console.error('Avatar picker error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
   };
 
   const styles = useMemo(() => StyleSheet.create({
@@ -102,9 +135,13 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {/* Avatar Header */}
         <View style={styles.header}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</Text>
-          </View>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarCircle} />
+          ) : (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</Text>
+            </View>
+          )}
           <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
           <Text style={styles.userEmail}>{user?.email || ''}</Text>
         </View>
