@@ -97,6 +97,7 @@ export default function DashboardScreen() {
     chartBox: { backgroundColor: (colors as any).card, marginHorizontal: 16, marginBottom: 12, borderRadius: 12, borderWidth: 1, borderColor: (colors as any).border, padding: 8 },
     chartWrapper: { alignItems: 'center', justifyContent: 'center', marginVertical: 10 },
     chartTitle: { color: (colors as any).text, fontWeight: '700', marginBottom: 6 },
+    todaySteps: { color: (colors as any).text, fontSize: 14, fontWeight: '600', marginTop: 4, marginBottom: 8 },
     deviceBox: { backgroundColor: (colors as any).card, marginHorizontal: 16, marginBottom: 24, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: (colors as any).border },
     deviceText: { color: (colors as any).text, marginBottom: 4 },
     noDeviceText: { color: (colors as any).placeholder, fontStyle: 'italic' },
@@ -154,6 +155,24 @@ export default function DashboardScreen() {
     const steps = samples.map((item: any) => Number(item.steps));
     return Math.max(...steps);
   }, [health.latest, health.history]);
+
+  // Calculate today's total steps
+  const todaySteps = useMemo(() => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    
+    // Get all samples from today
+    const todaySamples = (health.history as any[]).filter((item: any) => {
+      const t = typeof item.ts === 'number' ? item.ts : new Date(item.ts).getTime();
+      return t >= startOfDay && typeof item.steps === 'number';
+    });
+    
+    if (!todaySamples.length) return 0;
+    
+    // Steps is cumulative, so get the max value
+    const maxSteps = Math.max(...todaySamples.map((item: any) => Number(item.steps)));
+    return maxSteps;
+  }, [health.history, dayAnchor]);
 
   const MetricCard = ({ title, value }: { title: string; value: string }) => (
     <View style={styles.metricCard}>
@@ -238,8 +257,15 @@ export default function DashboardScreen() {
 
         <View style={styles.chartBox}>
         <Text style={styles.chartTitle}>Steps (total per minute)</Text>
+        <Text style={styles.todaySteps}>Today's steps: {todaySteps.toLocaleString()}</Text>
         <View style={styles.chartWrapper}>
-          <VictoryChart {...chartProps} width={Dimensions.get('window').width * 0.9} domain={{ x: [0, 24], y: [0, 30000] }}>
+          <VictoryChart 
+            {...chartProps} 
+            width={Dimensions.get('window').width * 0.9} 
+            height={250}
+            padding={{ top: 20, bottom: 40, left: 60, right: 20 }}
+            domain={{ x: [0, 24], y: [0, 30000] }}
+          >
           <VictoryAxis
             tickValues={X_TICKS_HOURS}
             tickFormat={(h) => formatHour(h as number)}

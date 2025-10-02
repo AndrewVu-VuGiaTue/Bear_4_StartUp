@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
 import { sendOtpEmail } from '../config/email.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -33,7 +34,15 @@ router.post(
 
     try {
       const exists = await User.findOne({ $or: [{ username: uname }, { email: em }] });
-      if (exists) return res.status(409).json({ message: 'Username or email already in use' });
+      
+      // If user exists but not verified, delete them and allow re-signup
+      if (exists && !exists.isVerified) {
+        console.log(`[AUTH] Deleting unverified user: ${exists.email}`);
+        await OtpCode.deleteMany({ userId: exists._id });
+        await User.deleteOne({ _id: exists._id });
+      } else if (exists && exists.isVerified) {
+        return res.status(409).json({ message: 'Username or email already in use' });
+      }
 
       // Generate OTP
       const otp = generateOtp();
@@ -330,6 +339,77 @@ router.post(
         token,
         user: { id: user._id, username: user.username, displayName: user.displayName, email: user.email },
       });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+// PUT /change-display-name - Change user's display name (requires auth)
+router.put(
+  '/change-display-name',
+  authMiddleware,
+  [body('displayName').trim().isLength({ min: 1 }).withMessage('Display name is required')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { displayName } = req.body;
+
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      user.displayName = displayName.trim();
+      await user.save();
+
+      return res.json({ 
+        message: 'Display name updated successfully',
+        user: { 
+          id: user._id, 
+          username: user.username, 
+          displayName: user.displayName, 
+          email: user.email 
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+// PUT /change-password - Change user's password (requires auth)
+router.put(
+  '/change-password',
+  authMiddleware,
+  [
+    body('currentPassword').isLength({ min: 6 }).withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      // Verify current password
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!match) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      // Hash and save new password
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      user.passwordHash = passwordHash;
+      await user.save();
+
+      return res.json({ message: 'Password changed successfully' });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });

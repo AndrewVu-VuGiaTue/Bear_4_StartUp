@@ -75,7 +75,7 @@ If you didn't request this, please ignore this email or contact support if you h
         <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
           <p>© 2025 BEAR Health. All rights reserved.</p>
           <p style="margin-top: 10px;">
-            This is a transactional email. You received this because you requested it from the BEAR Health app.
+            This is a transactional email. You received this because you requested it from the BEAR app.
           </p>
         </div>
       </div>

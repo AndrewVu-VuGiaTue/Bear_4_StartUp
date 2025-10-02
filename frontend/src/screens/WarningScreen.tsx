@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { useHealth, WarningItem } from '../context/HealthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,7 +59,7 @@ export default function WarningScreen() {
           scrollEnabled={false}
         data={todayList}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <WarningRow item={item} />}
+        renderItem={({ item }) => <WarningRow item={item} onDelete={() => health.removeWarning(item.id)} />}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         />
       </ScrollView>
@@ -67,7 +67,7 @@ export default function WarningScreen() {
   );
 }
 
-function WarningRow({ item }: { item: WarningItem }) {
+function WarningRow({ item, onDelete }: { item: WarningItem; onDelete: () => void }) {
   const { colors } = useTheme();
   
   // Use severity field from WarningItem
@@ -90,6 +90,10 @@ function WarningRow({ item }: { item: WarningItem }) {
     textContainer: { flex: 1 },
     time: { color: isCritical ? '#FFF' : '#000', fontWeight: '700', marginBottom: 4, fontSize: 14 },
     text: { color: isCritical ? '#FFF' : '#000', fontSize: 13 },
+    deleteButton: {
+      padding: 8,
+      marginLeft: 8,
+    },
   }), [isCritical]);
   
   const labels: string[] = [];
@@ -110,6 +114,13 @@ function WarningRow({ item }: { item: WarningItem }) {
         <Text style={styles.time}>{formatTime(item.time)}</Text>
         <Text style={styles.text}>{labels.join(' | ')}</Text>
       </View>
+      <TouchableOpacity style={styles.deleteButton} onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Ionicons 
+          name="close-circle" 
+          size={24} 
+          color={isCritical ? '#FFF' : '#000'} 
+        />
+      </TouchableOpacity>
     </View>
   );
 }

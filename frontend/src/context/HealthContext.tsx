@@ -13,6 +13,7 @@ export type HealthState = {
   warnings: WarningItem[];
   connect: (opts?: { address?: string; namePrefix?: string }) => Promise<boolean>;
   disconnect: () => Promise<void>;
+  removeWarning: (id: string) => void;
 };
 
 const Ctx = createContext<HealthState | undefined>(undefined);
@@ -270,6 +271,10 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const removeWarning = (id: string) => {
+    setWarnings((prev) => prev.filter((w) => w.id !== id));
+  };
+
   const value = useMemo<HealthState>(() => ({
     connected,
     deviceName,
@@ -279,6 +284,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     warnings,
     connect,
     disconnect,
+    removeWarning,
   }), [connected, deviceName, battery, latest, history, warnings]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
