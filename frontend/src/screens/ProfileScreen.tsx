@@ -154,8 +154,8 @@ export default function ProfileScreen() {
     modalContent: { backgroundColor: (colors as any).card, borderRadius: 16, padding: 20, width: '85%', maxWidth: 400 },
     modalTitle: { color: (colors as any).text, fontSize: 20, fontWeight: '700', marginBottom: 16 },
     modalButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
-    cancelButton: { flex: 1, backgroundColor: (colors as any).primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-    cancelText: { color: '#fff', fontWeight: '600' },
+    cancelButton: { flex: 1, backgroundColor: (colors as any).primary, paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+    cancelText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   }), [colors]);
 
   return (

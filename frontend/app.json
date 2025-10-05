@@ -5,6 +5,7 @@
     "scheme": "bear",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/BEAR_App_Icon_Transpararent.png",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffe6ee"
@@ -19,7 +20,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/BEAR_App_Icon_Transpararent.png"
     },
     "android": {
       "permissions": [
@@ -30,7 +32,8 @@
         "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#ffe6ee"
+        "foregroundImage": "./assets/BEAR_App_Icon_Transpararent.png",
+        "backgroundColor": "#B31B1B"
       },
       "package": "com.bear.app"
     },
