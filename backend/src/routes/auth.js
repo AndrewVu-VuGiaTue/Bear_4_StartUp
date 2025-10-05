@@ -417,4 +417,39 @@ router.put(
   }
 );
 
+// PUT /update-avatar - Update user's avatar URL (requires auth)
+router.put(
+  '/update-avatar',
+  authMiddleware,
+  [body('avatarUrl').isURL().withMessage('Valid avatar URL is required')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { avatarUrl } = req.body;
+
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      user.avatarUrl = avatarUrl;
+      await user.save();
+
+      return res.json({ 
+        message: 'Avatar updated successfully',
+        user: { 
+          id: user._id, 
+          username: user.username, 
+          displayName: user.displayName, 
+          email: user.email,
+          avatarUrl: user.avatarUrl
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
 export default router;

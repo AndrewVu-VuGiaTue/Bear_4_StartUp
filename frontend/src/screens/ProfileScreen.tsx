@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatarUrl || null);
   
   const canSavePwd = newPassword.length >= 6 && newPassword === confirmPassword;
   const authHeader = (t?: string | null) => (t ? { Authorization: `Bearer ${t}` } : undefined);
@@ -87,12 +87,47 @@ export default function ProfileScreen() {
           { compress: 0.8, format: SaveFormat.JPEG }
         );
 
-        setAvatarUri(manipResult.uri);
-        Alert.alert('Success', 'Avatar updated! (Note: Avatar storage not implemented yet, will reset on app restart)');
+        // Upload to Cloudinary
+        Alert.alert('Uploading...', 'Please wait while we upload your avatar');
+        
+        const formData = new FormData();
+        formData.append('file', {
+          uri: manipResult.uri,
+          type: 'image/jpeg',
+          name: 'avatar.jpg',
+        } as any);
+        formData.append('upload_preset', 'BEAR_4_StartUp');
+        formData.append('cloud_name', 'dn9o0ipph');
+
+        const cloudinaryResponse = await fetch(
+          'https://api.cloudinary.com/v1_1/dn9o0ipph/image/upload',
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        const cloudinaryData = await cloudinaryResponse.json();
+        
+        if (cloudinaryData.secure_url) {
+          // Save to backend
+          await api.put('/auth/update-avatar', 
+            { avatarUrl: cloudinaryData.secure_url }, 
+            { headers: authHeader(token) }
+          );
+          
+          // Update local state
+          setAvatarUri(cloudinaryData.secure_url);
+          updateProfileLocal({ avatarUrl: cloudinaryData.secure_url });
+          
+          Alert.alert('Success', 'Avatar updated successfully!');
+        } else {
+          throw new Error('Upload failed');
+        }
       }
     } catch (error) {
       console.error('Avatar picker error:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert('Error', 'Failed to upload avatar. Please try again.');
     }
   };
 
@@ -119,8 +154,8 @@ export default function ProfileScreen() {
     modalContent: { backgroundColor: (colors as any).card, borderRadius: 16, padding: 20, width: '85%', maxWidth: 400 },
     modalTitle: { color: (colors as any).text, fontSize: 20, fontWeight: '700', marginBottom: 16 },
     modalButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
-    cancelButton: { flex: 1, backgroundColor: (colors as any).border, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-    cancelText: { color: (colors as any).text, fontWeight: '600' },
+    cancelButton: { flex: 1, backgroundColor: (colors as any).primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+    cancelText: { color: '#fff', fontWeight: '600' },
   }), [colors]);
 
   return (

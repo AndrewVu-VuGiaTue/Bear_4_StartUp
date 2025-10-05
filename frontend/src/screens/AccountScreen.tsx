@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,8 @@ export default function AccountScreen() {
     content: { padding: 12, paddingBottom: 32 },
     pageTitle: { color: (colors as any).text, fontWeight: '800', fontSize: 28, marginBottom: 10 },
     header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: (colors as any).card, borderWidth: 1, borderColor: (colors as any).border, borderRadius: 12 },
+    avatarCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: (colors as any).primary, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#fff', fontSize: 28, fontWeight: '700' },
     name: { color: (colors as any).text, fontSize: 18, fontWeight: '800' },
     subtitle: { color: (colors as any).placeholder },
     section: { marginTop: 16, backgroundColor: (colors as any).card, borderWidth: 1, borderColor: (colors as any).border, borderRadius: 12, overflow: 'hidden' },
@@ -42,7 +44,13 @@ export default function AccountScreen() {
         <Text style={styles.pageTitle}>Settings</Text>
 
         <View style={styles.header}>
-          <Ionicons name="person-circle-outline" size={64} color={(colors as any).primary} />
+          {user?.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatarCircle} />
+          ) : (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
           <View style={{ marginLeft: 12 }}>
             <Text style={styles.name}>{displayName}</Text>
             <Text style={styles.subtitle}>{username}</Text>
