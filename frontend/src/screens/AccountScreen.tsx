@@ -63,7 +63,7 @@ export default function AccountScreen() {
 
         <View style={styles.section}>
           <SettingRow icon="notifications" label="Notifications" onPress={() => nav.navigate('Notifications')} colors={colors} rowStyle={styles.row} rowTextStyle={styles.rowText} />
-          <SettingRow icon="shield-checkmark" label="Emergency Contact" onPress={() => nav.navigate('EmergencyContact')} colors={colors} rowStyle={styles.row} rowTextStyle={styles.rowText} />
+          <SettingRow icon="mail" label="Emergency Contact" onPress={() => nav.navigate('EmergencyContact')} colors={colors} rowStyle={styles.row} rowTextStyle={styles.rowText} />
           <SettingRow icon="lock-closed" label="Privacy" onPress={() => nav.navigate('Privacy')} colors={colors} rowStyle={styles.row} rowTextStyle={styles.rowText} />
           <SettingRow icon="color-palette" label="Appearance" onPress={() => nav.navigate('Appearance')} colors={colors} rowStyle={styles.row} rowTextStyle={styles.rowText} />
         </View>

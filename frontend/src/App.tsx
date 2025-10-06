@@ -3,10 +3,6 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SignInScreen from './screens/SignInScreen';
 import SignUpScreen from './screens/SignUpScreen';
-import SignUpOTPScreen from './screens/SignUpOTPScreen';
-import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
-import VerifyOTPScreen from './screens/VerifyOTPScreen';
-import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import { StatusBar } from 'expo-status-bar';
 import MainTabs from './navigation/MainTabs';
 import { HealthProvider } from './context/HealthContext';
@@ -15,8 +11,14 @@ import ProfileScreen from './screens/ProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import AppearanceScreen from './screens/AppearanceScreen';
+import EmergencyContactScreen from './screens/EmergencyContactScreen';
 import HelpSupportScreen from './screens/HelpSupportScreen';
 import DeviceSelectionScreen from './screens/DeviceSelectionScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import VerifyOTPScreen from './screens/VerifyOTPScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import SignUpOTPScreen from './screens/SignUpOTPScreen';
+import { SettingsProvider, useSettings, themeFromAppearance } from './context/SettingsContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
@@ -39,9 +41,9 @@ function AppShell() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
             <Stack.Screen name="Appearance" component={AppearanceScreen} />
+            <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="DeviceSelection" component={DeviceSelectionScreen} />
-            <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
           </Stack.Navigator>
     </NavigationContainer>
   );

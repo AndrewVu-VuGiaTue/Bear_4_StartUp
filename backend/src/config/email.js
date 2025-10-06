@@ -124,102 +124,60 @@ If you didn't request this, please ignore this email or contact support if you h
   }
 }
 
-// Send emergency alert email using SendGrid
-export async function sendEmergencyAlertEmail(userEmail, emergencyEmail, userName, alertType, alertDetails) {
+// Send Emergency Alert email to emergency contact
+export async function sendEmergencyAlertEmail(email, data) {
   if (!SENDGRID_API_KEY) {
     console.error('[EMAIL] ❌ Cannot send email: SENDGRID_API_KEY not configured');
     return false;
   }
 
-  const mailOptions = {
-    to: emergencyEmail,
-    from: {
-      email: FROM_EMAIL,
-      name: 'BEAR Emergency Alert'
-    },
-    replyTo: FROM_EMAIL,
-    subject: `🚨 BEAR - Emergency Alert for ${userName}`,
-    // Plain text version (important for spam filters)
-    text: `
-BEAR Health Emergency Alert
+  const { patientName, metrics, occurredAt } = data || {};
+  const safeName = patientName || 'Your family member';
+  const subject = `BEAR - CRITICAL Health Alert for ${safeName}`;
 
-URGENT: ${userName} (${userEmail}) needs immediate attention!
+  const rows = Object.entries(metrics || {}).map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:700">${v}</td></tr>`).join('');
 
-Alert Type: ${alertType}
-Details: ${alertDetails}
-
-This is an automated emergency alert from the BEAR Health monitoring system.
-
-Please check on ${userName} immediately and ensure their safety.
-
-If this is a false alarm, please contact support.
-
-© 2025 BEAR Health. All rights reserved.
-    `.trim(),
-    // HTML version
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-        <div style="background-color: #e11d48; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">🚨 BEAR Emergency Alert</h1>
-        </div>
-        <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
-          <h2 style="color: #e11d48; margin-top: 0;">
-            URGENT: ${userName} needs immediate attention!
-          </h2>
-          <p style="color: #333; font-size: 16px; line-height: 1.6;">
-            <strong>${userName}</strong> (${userEmail}) has triggered an emergency alert through their BEAR Health monitoring device.
-          </p>
-          <div style="background-color: #fff5f5; padding: 20px; margin: 30px 0; border-radius: 8px; border-left: 4px solid #e11d48;">
-            <h3 style="color: #e11d48; margin: 0 0 10px 0;">Alert Details:</h3>
-            <p style="margin: 5px 0;"><strong>Type:</strong> ${alertType}</p>
-            <p style="margin: 5px 0;"><strong>Details:</strong> ${alertDetails}</p>
-          </div>
-          <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="color: #856404; margin: 0; font-weight: 600;">
-              ⚠️ Please check on ${userName} immediately and ensure their safety.
-            </p>
-          </div>
-          <p style="color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-            This is an automated emergency alert from the BEAR Health monitoring system.
-            If this is a false alarm, please contact support.
-          </p>
-        </div>
-        <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-          <p>© 2025 BEAR Health. All rights reserved.</p>
-          <p style="margin-top: 10px;">
-            This is a transactional email. You received this because you are listed as an emergency contact.
-          </p>
-        </div>
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #B31B1B; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">BEAR Health</h1>
       </div>
-    `,
-    // Email categories for SendGrid tracking
-    categories: ['emergency-alert'],
-    // Custom tracking settings
-    trackingSettings: {
-      clickTracking: { enable: false },
-      openTracking: { enable: true },
-    },
-  };
+      <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #B31B1B; margin-top: 0;">CRITICAL Health Alert</h2>
+        <p style="color: #333; font-size: 16px; line-height: 1.6;">
+          We detected a <strong>critical</strong> health event for <strong>${safeName}</strong>.
+        </p>
+        <table style="border-collapse:collapse; width:100%; margin:20px 0;">
+          ${rows}
+        </table>
+        <p style="color:#666; font-size:14px;">Time: <strong>${new Date(occurredAt || Date.now()).toLocaleString()}</strong></p>
+        <p style="color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          This message was sent automatically by the BEAR app because the user enabled Emergency Contact notifications.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+        <p>© 2025 BEAR Health. All rights reserved.</p>
+      </div>
+    </div>
+  `;
 
   try {
-    // Send email via SendGrid
-    console.log(`[EMAIL] 🚨 Sending emergency alert to ${emergencyEmail} for ${userName}...`);
-    const response = await sgMail.send(mailOptions);
-
-    console.log(`[EMAIL] ✅ Emergency alert sent to ${emergencyEmail} for ${userName}`);
-    console.log(`[EMAIL] SendGrid Response: ${response[0].statusCode}`);
-    console.log(`[EMAIL] Message ID: ${response[0].headers['x-message-id']}`);
-
+    const response = await sgMail.send({
+      to: email,
+      from: { email: FROM_EMAIL, name: 'BEAR' },
+      subject,
+      html,
+      text: `CRITICAL Health Alert for ${safeName}. Metrics: ${JSON.stringify(metrics || {})}. Time: ${new Date(occurredAt || Date.now()).toISOString()}`,
+      categories: ['critical-alert'],
+      trackingSettings: { clickTracking: { enable: false }, openTracking: { enable: false } },
+    });
+    console.log('[EMAIL] ✅ Emergency alert sent to', email, 'status:', response?.[0]?.statusCode);
     return true;
   } catch (error) {
-    console.error('[EMAIL] ❌ Failed to send emergency alert:', error.message);
-
-    // Log detailed error for debugging
-    if (error.response) {
-      console.error('[EMAIL] SendGrid Error Body:', JSON.stringify(error.response.body, null, 2));
-      console.error('[EMAIL] SendGrid Error Code:', error.code);
-    }
-
+    console.error('[EMAIL] ❌ Failed to send emergency alert:', error?.message);
+    if (error?.response) console.error('[EMAIL] SendGrid Error Body:', JSON.stringify(error.response.body, null, 2));
     return false;
   }
 }
+
+export default sgMail;

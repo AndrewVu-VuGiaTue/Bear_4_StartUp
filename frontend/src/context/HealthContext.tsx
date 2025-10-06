@@ -33,6 +33,7 @@ async function loadBT() {
 }
 
 export function HealthProvider({ children }: { children: React.ReactNode }) {
+  const { user, token } = useAuth();
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [battery, setBattery] = useState<number | null>(null);
@@ -46,9 +47,6 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     const d = new Date();
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   });
-
-  // Get user from AuthContext for emergency alerts
-  const { user } = useAuth();
 
   // Daily reset: clear history and warnings at midnight
   useEffect(() => {
@@ -217,8 +215,19 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
               setWarnings((prev) => [...prev, w]);
               lastWarningTimeRef.current[warningKey] = now;
 
-              // Send emergency alert for critical warnings
-              sendEmergencyAlert(w, user);
+              // Fire emergency email if severity is critical and emergency contact is set
+              if (w.severity === 'critical' && user?.emergencyEmail) {
+                try {
+                  const metrics: any = {};
+                  if (w.fall) metrics.Fall = 'Detected';
+                  if (typeof w.hrAbnormal === 'number') metrics['Heart Rate'] = `${w.hrAbnormal} bpm`;
+                  if (typeof w.spo2Abnormal === 'number') metrics['SpO2'] = `${w.spo2Abnormal}%`;
+                  api.post('/auth/send-critical-alert', { metrics, occurredAt: new Date(w.time).toISOString() }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                    .catch((e) => console.warn('[ALERT] Failed to send critical alert:', e?.message));
+                } catch (e) {
+                  console.warn('[ALERT] Error preparing critical alert:', e);
+                }
+              }
             }
           }
         } catch (e) {
@@ -387,34 +396,4 @@ function makeWarnings(sample: HealthSample): WarningItem | null {
   if (!flagged) return null;
   
   return { ...out, severity } as WarningItem;
-}
-
-// Send emergency alert for critical warnings
-async function sendEmergencyAlert(warning: WarningItem, user: any) {
-  if (warning.severity !== 'critical' || !user?.emergencyContactEmail) {
-    return;
-  }
-
-  try {
-    // Build alert details
-    const alertDetails = [];
-    if (warning.fall) alertDetails.push('Severe fall detected');
-    if (warning.hrAbnormal) alertDetails.push(`Heart rate: ${warning.hrAbnormal} bpm`);
-    if (warning.spo2Abnormal) alertDetails.push(`Oxygen saturation: ${warning.spo2Abnormal}%`);
-
-    const details = alertDetails.join(', ') || 'Critical health condition detected';
-
-    // Send emergency alert email
-    await api.post('/auth/send-emergency-alert', {
-      emergencyContactEmail: user.emergencyContactEmail,
-      userEmail: user.email,
-      userName: user.displayName,
-      alertType: warning.fall ? 'Fall Detected' : 'Critical Health Alert',
-      alertDetails: details
-    });
-
-    console.log('[HEALTH] Emergency alert sent to:', user.emergencyContactEmail);
-  } catch (error) {
-    console.error('[HEALTH] Failed to send emergency alert:', error);
-  }
 }

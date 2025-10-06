@@ -1,26 +1,26 @@
 import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
-import { sendOtpEmail, sendEmergencyAlertEmail } from '../config/email.js';
-import { authMiddleware } from '../middleware/auth.js'
+import { sendOtpEmail } from '../config/email.js';
+import { sendEmergencyAlertEmail } from '../config/email.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-// Helper function to generate 6-digit OTP
 function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-// POST /send-emergency-alert - Send emergency alert email (requires auth)
 // POST /signup
 router.post(
   '/signup',
   [
     body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
     body('displayName').trim().isLength({ min: 1 }).withMessage('Display name is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('confirmPassword').custom((v, { req }) => v === req.body.password).withMessage('Passwords do not match'),
   ],
@@ -300,6 +300,7 @@ router.post(
       otpRecord.used = true;
       await otpRecord.save();
 
+      return res.json({ message: 'Password has been reset successfully' });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
@@ -452,43 +453,52 @@ router.put(
   }
 );
 
-// PUT /update-emergency-contact - Update user's emergency contact email (requires auth)
+// PUT /emergency-contact - Save user's emergency contact email (requires auth)
 router.put(
-  '/update-emergency-contact',
+  '/emergency-contact',
   authMiddleware,
-  [
-    body('emergencyContactEmail')
-      .optional({ checkFalsy: true })
-      .isEmail()
-      .withMessage('Emergency contact email must be valid')
-      .normalizeEmail()
-  ],
+  [body('email').isEmail().withMessage('Valid email is required')],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { emergencyContactEmail } = req.body;
-
+    const { email } = req.body;
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-
-      user.emergencyContactEmail = emergencyContactEmail || null;
+      user.emergencyEmail = String(email).toLowerCase();
       await user.save();
+      return res.json({ message: 'Emergency contact updated', user: { id: user._id, emergencyEmail: user.emergencyEmail } });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
 
-      return res.json({
-        message: emergencyContactEmail
-          ? 'Emergency contact updated successfully'
-          : 'Emergency contact removed successfully',
-        user: {
-          id: user._id,
-          username: user.username,
-          displayName: user.displayName,
-          email: user.email,
-          avatarUrl: user.avatarUrl,
-          emergencyContactEmail: user.emergencyContactEmail
-        }
-      });
+// POST /send-critical-alert - Send critical alert email to user's emergency contact (requires auth)
+router.post(
+  '/send-critical-alert',
+  authMiddleware,
+  [
+    body('metrics').optional().isObject(),
+    body('occurredAt').optional().isISO8601().toDate(),
+  ],
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      if (!user.emergencyEmail) return res.status(400).json({ message: 'Emergency contact not set' });
+
+      const payload = {
+        patientName: user.displayName || user.username,
+        metrics: req.body.metrics || {},
+        occurredAt: req.body.occurredAt || new Date(),
+      };
+
+      const ok = await sendEmergencyAlertEmail(user.emergencyEmail, payload);
+      if (!ok) return res.status(500).json({ message: 'Failed to send alert email' });
+      return res.json({ message: 'Alert email sent' });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
