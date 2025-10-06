@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
 import { sendOtpEmail, sendEmergencyAlertEmail } from '../config/email.js';
 import { authMiddleware } from '../middleware/auth.js'
+
+const router = Router();
 
 // POST /send-emergency-alert - Send emergency alert email (requires auth)
 // POST /signup
@@ -487,3 +490,5 @@ router.put(
     }
   }
 );
+
+export default router;
