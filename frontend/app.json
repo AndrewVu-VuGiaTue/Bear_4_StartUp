@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "BEAR",
-    "slug": "bear-app",
+    "slug": "bear4startup",
     "scheme": "bear",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/BEAR_App_Icon_Transpararent.png",
     "splash": {
@@ -11,7 +11,10 @@
       "backgroundColor": "#ffe6ee"
     },
     "extra": {
-      "EXPO_PUBLIC_API_URL": "https://bear-backend-xe69.onrender.com"
+      "EXPO_PUBLIC_API_URL": "https://bear-backend-xe69.onrender.com",
+      "eas": {
+        "projectId": "23b78e1b-ef71-45f9-990e-e71fa34b8a9e"
+      }
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -39,6 +42,7 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "owner": "giatuevu-andrewvu"
   }
 }

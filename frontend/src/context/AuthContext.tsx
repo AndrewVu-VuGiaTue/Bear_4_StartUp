@@ -6,6 +6,7 @@ export type User = {
   displayName: string;
   email?: string;
   avatarUrl?: string | null;
+  emergencyContactEmail?: string | null;
 };
 
 export type AuthState = {

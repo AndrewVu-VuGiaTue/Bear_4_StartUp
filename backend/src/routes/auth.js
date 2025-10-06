@@ -1,25 +1,18 @@
 import { Router } from 'express';
-import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
-import { sendOtpEmail } from '../config/email.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { sendOtpEmail, sendEmergencyAlertEmail } from '../config/email.js';
+import { authMiddleware } from '../middleware/auth.js'
 
-const router = Router();
-
-function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
+// POST /send-emergency-alert - Send emergency alert email (requires auth)
 // POST /signup
 router.post(
   '/signup',
   [
     body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
     body('displayName').trim().isLength({ min: 1 }).withMessage('Display name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('confirmPassword').custom((v, { req }) => v === req.body.password).withMessage('Passwords do not match'),
   ],
@@ -299,7 +292,6 @@ router.post(
       otpRecord.used = true;
       await otpRecord.save();
 
-      return res.json({ message: 'Password has been reset successfully' });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
@@ -452,4 +444,46 @@ router.put(
   }
 );
 
-export default router;
+// PUT /update-emergency-contact - Update user's emergency contact email (requires auth)
+router.put(
+  '/update-emergency-contact',
+  authMiddleware,
+  [
+    body('emergencyContactEmail')
+      .optional({ checkFalsy: true })
+      .isEmail()
+      .withMessage('Emergency contact email must be valid')
+      .normalizeEmail()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { emergencyContactEmail } = req.body;
+
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      user.emergencyContactEmail = emergencyContactEmail || null;
+      await user.save();
+
+      return res.json({
+        message: emergencyContactEmail
+          ? 'Emergency contact updated successfully'
+          : 'Emergency contact removed successfully',
+        user: {
+          id: user._id,
+          username: user.username,
+          displayName: user.displayName,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+          emergencyContactEmail: user.emergencyContactEmail
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);

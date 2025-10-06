@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { useAuth } from './AuthContext';
+import { api } from '../api/client';
 
 export type HealthSample = { ts: number; hr?: number; spo2?: number; steps?: number; battery?: number; totalG?: number };
 export type WarningItem = { id: string; time: Date; severity: 'warning' | 'critical'; fall?: boolean; hrAbnormal?: number; spo2Abnormal?: number };
@@ -44,6 +46,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     const d = new Date();
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   });
+
+  // Get user from AuthContext for emergency alerts
+  const { user } = useAuth();
 
   // Daily reset: clear history and warnings at midnight
   useEffect(() => {
@@ -211,6 +216,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
             if (now - lastTime >= interval) {
               setWarnings((prev) => [...prev, w]);
               lastWarningTimeRef.current[warningKey] = now;
+
+              // Send emergency alert for critical warnings
+              sendEmergencyAlert(w, user);
             }
           }
         } catch (e) {
@@ -379,4 +387,34 @@ function makeWarnings(sample: HealthSample): WarningItem | null {
   if (!flagged) return null;
   
   return { ...out, severity } as WarningItem;
+}
+
+// Send emergency alert for critical warnings
+async function sendEmergencyAlert(warning: WarningItem, user: any) {
+  if (warning.severity !== 'critical' || !user?.emergencyContactEmail) {
+    return;
+  }
+
+  try {
+    // Build alert details
+    const alertDetails = [];
+    if (warning.fall) alertDetails.push('Severe fall detected');
+    if (warning.hrAbnormal) alertDetails.push(`Heart rate: ${warning.hrAbnormal} bpm`);
+    if (warning.spo2Abnormal) alertDetails.push(`Oxygen saturation: ${warning.spo2Abnormal}%`);
+
+    const details = alertDetails.join(', ') || 'Critical health condition detected';
+
+    // Send emergency alert email
+    await api.post('/auth/send-emergency-alert', {
+      emergencyContactEmail: user.emergencyContactEmail,
+      userEmail: user.email,
+      userName: user.displayName,
+      alertType: warning.fall ? 'Fall Detected' : 'Critical Health Alert',
+      alertDetails: details
+    });
+
+    console.log('[HEALTH] Emergency alert sent to:', user.emergencyContactEmail);
+  } catch (error) {
+    console.error('[HEALTH] Failed to send emergency alert:', error);
+  }
 }

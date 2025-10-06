@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     isVerified: { type: Boolean, default: false },
     avatarUrl: { type: String, default: null }, // Cloudinary URL
+    emergencyContactEmail: { type: String, default: null }, // Emergency contact email
   },
   { timestamps: true }
 );
