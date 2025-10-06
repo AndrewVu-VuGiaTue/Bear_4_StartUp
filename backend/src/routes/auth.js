@@ -9,6 +9,11 @@ import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router();
 
+// Helper function to generate 6-digit OTP
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 // POST /send-emergency-alert - Send emergency alert email (requires auth)
 // POST /signup
 router.post(
