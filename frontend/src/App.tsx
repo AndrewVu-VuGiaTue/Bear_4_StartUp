@@ -11,9 +11,9 @@ import ProfileScreen from './screens/ProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
 import AppearanceScreen from './screens/AppearanceScreen';
-import EmergencyContactScreen from './screens/EmergencyContactScreen';
 import HelpSupportScreen from './screens/HelpSupportScreen';
 import DeviceSelectionScreen from './screens/DeviceSelectionScreen';
+import EmergencyContactScreen from './screens/EmergencyContactScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import VerifyOTPScreen from './screens/VerifyOTPScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
@@ -39,9 +39,9 @@ function AppShell() {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
             <Stack.Screen name="Appearance" component={AppearanceScreen} />
-            <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="DeviceSelection" component={DeviceSelectionScreen} />
           </Stack.Navigator>

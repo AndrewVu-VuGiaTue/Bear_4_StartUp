@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { useAuth } from './AuthContext';
-import { api } from '../api/client';
 
 export type HealthSample = { ts: number; hr?: number; spo2?: number; steps?: number; battery?: number; totalG?: number };
 export type WarningItem = { id: string; time: Date; severity: 'warning' | 'critical'; fall?: boolean; hrAbnormal?: number; spo2Abnormal?: number };
@@ -33,7 +31,6 @@ async function loadBT() {
 }
 
 export function HealthProvider({ children }: { children: React.ReactNode }) {
-  const { user, token } = useAuth();
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [battery, setBattery] = useState<number | null>(null);
@@ -214,20 +211,6 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
             if (now - lastTime >= interval) {
               setWarnings((prev) => [...prev, w]);
               lastWarningTimeRef.current[warningKey] = now;
-
-              // Fire emergency email if severity is critical and emergency contact is set
-              if (w.severity === 'critical' && user?.emergencyEmail) {
-                try {
-                  const metrics: any = {};
-                  if (w.fall) metrics.Fall = 'Detected';
-                  if (typeof w.hrAbnormal === 'number') metrics['Heart Rate'] = `${w.hrAbnormal} bpm`;
-                  if (typeof w.spo2Abnormal === 'number') metrics['SpO2'] = `${w.spo2Abnormal}%`;
-                  api.post('/auth/send-critical-alert', { metrics, occurredAt: new Date(w.time).toISOString() }, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-                    .catch((e) => console.warn('[ALERT] Failed to send critical alert:', e?.message));
-                } catch (e) {
-                  console.warn('[ALERT] Error preparing critical alert:', e);
-                }
-              }
             }
           }
         } catch (e) {

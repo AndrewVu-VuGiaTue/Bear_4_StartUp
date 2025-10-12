@@ -5,7 +5,6 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import OtpCode from '../models/OtpCode.js';
 import { sendOtpEmail } from '../config/email.js';
-import { sendEmergencyAlertEmail } from '../config/email.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -453,22 +452,50 @@ router.put(
   }
 );
 
-// PUT /emergency-contact - Save user's emergency contact email (requires auth)
-router.put(
-  '/emergency-contact',
+// GET /emergency-contacts - Get all emergency contacts (requires auth)
+router.get('/emergency-contacts', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    return res.json({ emergencyContacts: user.emergencyContacts || [] });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST /emergency-contacts - Add emergency contact (requires auth)
+router.post(
+  '/emergency-contacts',
   authMiddleware,
-  [body('email').isEmail().withMessage('Valid email is required')],
+  [
+    body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
+    body('email').isEmail().withMessage('Valid email is required')
+  ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { email } = req.body;
+    const { name, email } = req.body;
+
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-      user.emergencyEmail = String(email).toLowerCase();
+
+      // Check if email already exists
+      const exists = user.emergencyContacts.some(c => c.email === email.toLowerCase());
+      if (exists) {
+        return res.status(400).json({ message: 'This email is already added' });
+      }
+
+      user.emergencyContacts.push({ name: name.trim(), email: email.toLowerCase() });
       await user.save();
-      return res.json({ message: 'Emergency contact updated', user: { id: user._id, emergencyEmail: user.emergencyEmail } });
+
+      return res.json({ 
+        message: 'Emergency contact added successfully',
+        emergencyContacts: user.emergencyContacts
+      });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: 'Internal server error' });
@@ -476,34 +503,25 @@ router.put(
   }
 );
 
-// POST /send-critical-alert - Send critical alert email to user's emergency contact (requires auth)
-router.post(
-  '/send-critical-alert',
-  authMiddleware,
-  [
-    body('metrics').optional().isObject(),
-    body('occurredAt').optional().isISO8601().toDate(),
-  ],
-  async (req, res) => {
-    try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      if (!user.emergencyEmail) return res.status(400).json({ message: 'Emergency contact not set' });
+// DELETE /emergency-contacts/:id - Remove emergency contact (requires auth)
+router.delete('/emergency-contacts/:id', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-      const payload = {
-        patientName: user.displayName || user.username,
-        metrics: req.body.metrics || {},
-        occurredAt: req.body.occurredAt || new Date(),
-      };
+    user.emergencyContacts = user.emergencyContacts.filter(
+      c => c._id.toString() !== req.params.id
+    );
+    await user.save();
 
-      const ok = await sendEmergencyAlertEmail(user.emergencyEmail, payload);
-      if (!ok) return res.status(500).json({ message: 'Failed to send alert email' });
-      return res.json({ message: 'Alert email sent' });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
+    return res.json({ 
+      message: 'Emergency contact removed successfully',
+      emergencyContacts: user.emergencyContacts
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-);
+});
 
 export default router;

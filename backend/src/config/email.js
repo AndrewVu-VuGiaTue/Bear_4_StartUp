@@ -12,14 +12,20 @@ if (!SENDGRID_API_KEY) {
   console.log('[EMAIL] ✅ SendGrid initialized successfully');
 }
 
-// Send OTP email using SendGrid
-export async function sendOtpEmail(email, otp, purpose = 'password reset') {
-  if (!SENDGRID_API_KEY) {
-    console.error('[EMAIL] ❌ Cannot send email: SENDGRID_API_KEY not configured');
-    return false;
-  }
+// Send critical alert email using Gmail
+export async function sendCriticalAlertEmail(to, userName, alertType, alertMessage, timestamp) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
   const mailOptions = {
+    from: `"BEAR Health Alert" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `🚨 CRITICAL HEALTH ALERT - ${userName}`,
     to: email,
     from: {
       email: FROM_EMAIL,
@@ -120,62 +126,6 @@ If you didn't request this, please ignore this email or contact support if you h
       }
     }
     
-    return false;
-  }
-}
-
-// Send Emergency Alert email to emergency contact
-export async function sendEmergencyAlertEmail(email, data) {
-  if (!SENDGRID_API_KEY) {
-    console.error('[EMAIL] ❌ Cannot send email: SENDGRID_API_KEY not configured');
-    return false;
-  }
-
-  const { patientName, metrics, occurredAt } = data || {};
-  const safeName = patientName || 'Your family member';
-  const subject = `BEAR - CRITICAL Health Alert for ${safeName}`;
-
-  const rows = Object.entries(metrics || {}).map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:700">${v}</td></tr>`).join('');
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-      <div style="background-color: #B31B1B; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0;">BEAR Health</h1>
-      </div>
-      <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
-        <h2 style="color: #B31B1B; margin-top: 0;">CRITICAL Health Alert</h2>
-        <p style="color: #333; font-size: 16px; line-height: 1.6;">
-          We detected a <strong>critical</strong> health event for <strong>${safeName}</strong>.
-        </p>
-        <table style="border-collapse:collapse; width:100%; margin:20px 0;">
-          ${rows}
-        </table>
-        <p style="color:#666; font-size:14px;">Time: <strong>${new Date(occurredAt || Date.now()).toLocaleString()}</strong></p>
-        <p style="color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-          This message was sent automatically by the BEAR app because the user enabled Emergency Contact notifications.
-        </p>
-      </div>
-      <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-        <p>© 2025 BEAR Health. All rights reserved.</p>
-      </div>
-    </div>
-  `;
-
-  try {
-    const response = await sgMail.send({
-      to: email,
-      from: { email: FROM_EMAIL, name: 'BEAR' },
-      subject,
-      html,
-      text: `CRITICAL Health Alert for ${safeName}. Metrics: ${JSON.stringify(metrics || {})}. Time: ${new Date(occurredAt || Date.now()).toISOString()}`,
-      categories: ['critical-alert'],
-      trackingSettings: { clickTracking: { enable: false }, openTracking: { enable: false } },
-    });
-    console.log('[EMAIL] ✅ Emergency alert sent to', email, 'status:', response?.[0]?.statusCode);
-    return true;
-  } catch (error) {
-    console.error('[EMAIL] ❌ Failed to send emergency alert:', error?.message);
-    if (error?.response) console.error('[EMAIL] SendGrid Error Body:', JSON.stringify(error.response.body, null, 2));
     return false;
   }
 }
