@@ -458,9 +458,10 @@ router.get('/emergency-contacts', authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    console.log('[AUTH] Emergency contacts requested for user:', req.userId);
     return res.json({ emergencyContacts: user.emergencyContacts || [] });
   } catch (err) {
-    console.error(err);
+    console.error('[AUTH] Error fetching emergency contacts:', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
