@@ -337,7 +337,7 @@ router.post(
       const token = jwt.sign({ sub: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
       return res.json({
         token,
-        user: { id: user._id, username: user.username, displayName: user.displayName, email: user.email },
+        user: { id: user._id, username: user.username, displayName: user.displayName, email: user.email, avatarUrl: user.avatarUrl },
       });
     } catch (err) {
       console.error(err);
