@@ -3,7 +3,7 @@
 This repository contains two folders:
 
 - `backend/`: Node.js + Express + MongoDB API for authentication (sign up with OTP, verify, sign in)
-- `frontend/`: Expo React Native app with a soft pink theme and screens in English
+- `frontend/`: Expo React Native app with a dark red theme and screens in English
 
 ## Getting Started
 

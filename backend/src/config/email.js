@@ -12,20 +12,9 @@ if (!SENDGRID_API_KEY) {
   console.log('[EMAIL] ✅ SendGrid initialized successfully');
 }
 
-// Send critical alert email using Gmail
-export async function sendCriticalAlertEmail(to, userName, alertType, alertMessage, timestamp) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
+// Send OTP email
+export async function sendOtpEmail(email, otp, purpose = 'signup') {
   const mailOptions = {
-    from: `"BEAR Health Alert" <${process.env.EMAIL_USER}>`,
-    to,
-    subject: `🚨 CRITICAL HEALTH ALERT - ${userName}`,
     to: email,
     from: {
       email: FROM_EMAIL,
@@ -33,7 +22,6 @@ export async function sendCriticalAlertEmail(to, userName, alertType, alertMessa
     },
     replyTo: FROM_EMAIL,
     subject: purpose === 'signup' ? 'BEAR - Verify Your Email' : 'BEAR - Password Reset OTP',
-    // Plain text version (important for spam filters)
     text: `
 BEAR Health
 
@@ -51,7 +39,6 @@ If you didn't request this, please ignore this email or contact support if you h
 
 © 2025 BEAR Health. All rights reserved.
     `.trim(),
-    // HTML version
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: #B31B1B; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
@@ -86,9 +73,7 @@ If you didn't request this, please ignore this email or contact support if you h
         </div>
       </div>
     `,
-    // Email categories for SendGrid tracking
     categories: ['otp', purpose === 'signup' ? 'signup' : 'password-reset'],
-    // Custom tracking settings
     trackingSettings: {
       clickTracking: { enable: false },
       openTracking: { enable: false },
@@ -96,7 +81,6 @@ If you didn't request this, please ignore this email or contact support if you h
   };
 
   try {
-    // Send email via SendGrid
     console.log(`[EMAIL] 📤 Sending OTP to ${email} from ${FROM_EMAIL}...`);
     const response = await sgMail.send(mailOptions);
     
@@ -110,12 +94,10 @@ If you didn't request this, please ignore this email or contact support if you h
   } catch (error) {
     console.error('[EMAIL] ❌ Failed to send OTP:', error.message);
     
-    // Log detailed error for debugging
     if (error.response) {
       console.error('[EMAIL] SendGrid Error Body:', JSON.stringify(error.response.body, null, 2));
       console.error('[EMAIL] SendGrid Error Code:', error.code);
       
-      // Check for common errors
       if (error.response.body?.errors) {
         error.response.body.errors.forEach((err) => {
           console.error(`[EMAIL] Error: ${err.message}`);
