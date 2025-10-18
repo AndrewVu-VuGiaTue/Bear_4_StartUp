@@ -78,6 +78,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
 
   // Send critical alert email to emergency contacts
   const sendCriticalAlert = async (warning: WarningItem, sample: HealthSample) => {
+    console.log('[HEALTH] sendCriticalAlert called, token:', token ? 'exists' : 'null');
     if (!token) {
       console.log('[HEALTH] No token, skipping alert email');
       return;
@@ -112,7 +113,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         message = 'Blood oxygen level is critically low.';
       }
 
-      await api.post('/health/alert', {
+      console.log('[HEALTH] Sending alert to API:', { alertType, heartRate: sample.hr, spo2: sample.spo2 });
+      
+      const response = await api.post('/health/alert', {
         alertType,
         message,
         heartRate: sample.hr,
@@ -123,9 +126,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       });
 
       lastAlertSentRef.current[alertKey] = now;
-      console.log('[HEALTH] Critical alert email sent successfully');
-    } catch (err) {
-      console.error('[HEALTH] Failed to send alert email:', err);
+      console.log('[HEALTH] Critical alert email sent successfully:', response.data);
+    } catch (err: any) {
+      console.error('[HEALTH] Failed to send alert email:', err?.response?.data || err?.message || err);
     }
   };
 
