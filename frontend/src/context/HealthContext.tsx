@@ -33,7 +33,7 @@ async function loadBT() {
 }
 
 export function HealthProvider({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const auth = useAuth();
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [battery, setBattery] = useState<number | null>(null);
@@ -78,8 +78,12 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
 
   // Send critical alert email to emergency contacts
   const sendCriticalAlert = async (warning: WarningItem, sample: HealthSample) => {
-    console.log('[HEALTH] sendCriticalAlert called, token:', token ? 'exists' : 'null');
-    if (!token) {
+    // Get fresh token from auth context
+    const currentToken = auth.token;
+    console.log('[HEALTH] sendCriticalAlert called, token:', currentToken ? 'exists' : 'null');
+    console.log('[HEALTH] User:', auth.user ? auth.user.username : 'null');
+    
+    if (!currentToken) {
       console.log('[HEALTH] No token, skipping alert email');
       return;
     }
@@ -122,7 +126,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         spo2: sample.spo2,
         temperature: null // Add if available
       }, {
-        headers: authHeader(token)
+        headers: authHeader(currentToken)
       });
 
       lastAlertSentRef.current[alertKey] = now;
