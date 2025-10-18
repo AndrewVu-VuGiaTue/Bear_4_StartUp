@@ -18,15 +18,17 @@ export default function SignInScreen({ navigation }: any) {
       const res = await api.post('/auth/signin', { identifier, password });
       const user = res?.data?.user;
       const token = res?.data?.token;
-      if (user) auth.setSession({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName || user.username,
-        email: user.email,
-        avatarUrl: user.avatarUrl || null,
-      }, token);
-      Alert.alert('Success', `Welcome, ${user?.displayName || user?.username}!`);
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      if (user) {
+        auth.setSession({
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName || user.username,
+          email: user.email,
+          avatarUrl: user.avatarUrl || null,
+        }, token);
+        Alert.alert('Success', `Welcome, ${user?.displayName || user?.username}!`);
+        // Navigation will automatically update when auth state changes
+      }
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Sign in failed';
       Alert.alert('Error', msg);

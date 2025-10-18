@@ -25,30 +25,39 @@ const Stack = createNativeStackNavigator();
 
 function AppShell() {
   const { appearance } = useSettings();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const themed = themeFromAppearance(appearance);
+  
+  // Wait for auth to load before rendering navigation
+  if (isLoading) {
+    return null; // Or a loading screen
+  }
   
   return (
     <NavigationContainer theme={themed}>
           <StatusBar style="dark" />
-          <Stack.Navigator 
-            screenOptions={{ headerShown: false }}
-            initialRouteName={user ? 'MainTabs' : 'Sign In'}
-          >
-            <Stack.Screen name="Sign In" component={SignInScreen} />
-            <Stack.Screen name="Sign Up" component={SignUpScreen} />
-            <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
-            <Stack.Screen name="Privacy" component={PrivacyScreen} />
-            <Stack.Screen name="Appearance" component={AppearanceScreen} />
-            <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
-            <Stack.Screen name="DeviceSelection" component={DeviceSelectionScreen} />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {user ? (
+              <>
+                <Stack.Screen name="MainTabs" component={MainTabs} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
+                <Stack.Screen name="Privacy" component={PrivacyScreen} />
+                <Stack.Screen name="Appearance" component={AppearanceScreen} />
+                <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+                <Stack.Screen name="DeviceSelection" component={DeviceSelectionScreen} />
+              </>
+            ) : (
+              <>
+                <Stack.Screen name="Sign In" component={SignInScreen} />
+                <Stack.Screen name="Sign Up" component={SignUpScreen} />
+                <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
+                <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+              </>
+            )}
           </Stack.Navigator>
     </NavigationContainer>
   );

@@ -11,6 +11,7 @@ export type User = {
 export type AuthState = {
   user: User | null;
   token?: string | null;
+  isLoading: boolean;
   setSession: (u: User, token?: string | null) => void;
   clear: () => void;
   updateProfileLocal: (patch: Partial<User>) => void;
@@ -21,6 +22,7 @@ const Ctx = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Lazy load AsyncStorage to avoid hard dependency
   let AsyncStorage: any;
@@ -32,14 +34,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        if (!AsyncStorage) return;
+        if (!AsyncStorage) {
+          setIsLoading(false);
+          return;
+        }
         const raw = await AsyncStorage.getItem('bear.auth');
         if (raw) {
           const parsed = JSON.parse(raw);
           setUser(parsed.user || null);
           setToken(parsed.token || null);
         }
-      } catch {}
+      } catch {
+        console.log('[Auth] Failed to load session');
+      } finally {
+        setIsLoading(false);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -47,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(() => ({
     user,
     token,
+    isLoading,
     setSession: (u: User, t?: string | null) => {
       setUser(u);
       setToken(t ?? null);
@@ -66,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
     },
-  }), [user, token]);
+  }), [user, token, isLoading]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

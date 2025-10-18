@@ -18,7 +18,7 @@ export default function AccountScreen() {
       {
         text: 'Sign Out', style: 'destructive', onPress: () => {
           clear();
-          nav.reset({ index: 0, routes: [{ name: 'Sign In' }] });
+          // Navigation will automatically update when auth state changes
         }
       }
     ]);
