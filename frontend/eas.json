@@ -15,10 +15,11 @@
       "autoIncrement": true
     },
     "apk": {
+      "distribution": "internal",
       "android": {
-        "gradleCommand": ":app:assembleRelease",
         "buildType": "apk"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
