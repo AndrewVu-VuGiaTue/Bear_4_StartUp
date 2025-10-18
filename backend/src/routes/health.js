@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import User from '../models/User.js';
-import { sendCriticalAlertEmail } from '../config/emailCritical.js';
+import { sendCriticalAlertEmail } from '../config/email.js';
 
 const router = express.Router();
 
