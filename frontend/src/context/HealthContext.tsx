@@ -49,6 +49,57 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   });
 
+  // Load AsyncStorage
+  let AsyncStorage: any;
+  try {
+    AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  } catch {}
+
+  // Load persisted health data on mount
+  useEffect(() => {
+    (async () => {
+      if (!AsyncStorage || !auth.user) return;
+      try {
+        const key = `bear.health.${auth.user.id || auth.user.username}`;
+        const raw = await AsyncStorage.getItem(key);
+        if (raw) {
+          const data = JSON.parse(raw);
+          const today = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+          
+          // Only restore if same day
+          if (data.date === today) {
+            console.log('[HEALTH] Restoring health data from storage');
+            setHistory(data.history || []);
+            setWarnings(data.warnings || []);
+          } else {
+            console.log('[HEALTH] Health data is from different day, starting fresh');
+          }
+        }
+      } catch (err) {
+        console.error('[HEALTH] Failed to load health data:', err);
+      }
+    })();
+  }, [auth.user]);
+
+  // Persist health data when it changes
+  useEffect(() => {
+    (async () => {
+      if (!AsyncStorage || !auth.user) return;
+      try {
+        const key = `bear.health.${auth.user.id || auth.user.username}`;
+        const today = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+        const data = {
+          date: today,
+          history,
+          warnings
+        };
+        await AsyncStorage.setItem(key, JSON.stringify(data));
+      } catch (err) {
+        console.error('[HEALTH] Failed to save health data:', err);
+      }
+    })();
+  }, [history, warnings, auth.user]);
+
   // Daily reset: clear history and warnings at midnight
   useEffect(() => {
     const checkMidnight = setInterval(() => {
@@ -111,32 +162,32 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         alertType = 'Fall Detected';
         message = 'A fall has been detected. Please check on the user immediately.';
       } else if (warning.severity === 'critical') {
-        // Critical level alerts
+        // Critical level alerts (HR < 40 or > 150, SpO2 < 88)
         if (warning.hrAbnormal && warning.spo2Abnormal) {
           // Both abnormal
           alertType = 'Critical Health Alert';
           message = 'Both heart rate and blood oxygen levels are abnormal. Immediate attention required.';
         } else if (warning.hrAbnormal) {
-          // Only HR abnormal
+          // Only HR abnormal (< 40 or > 150)
           alertType = 'Critical: Abnormal Heart Rate';
-          message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}. Blood oxygen level is normal.`;
+          message = `Heart rate is ${warning.hrAbnormal < 40 ? 'critically low' : 'critically high'}. Blood oxygen level is normal.`;
         } else if (warning.spo2Abnormal) {
-          // Only SpO2 abnormal
+          // Only SpO2 abnormal (< 88)
           alertType = 'Critical: Abnormal SpO2';
           message = 'Blood oxygen level is critically low. Heart rate is normal.';
         }
       } else {
-        // Warning level alerts
+        // Warning level alerts (HR: 40-50 or 120-150, SpO2: 88-92)
         if (warning.hrAbnormal && warning.spo2Abnormal) {
           // Both abnormal (warning level)
           alertType = 'Warning: Health Alert';
           message = 'Both heart rate and blood oxygen levels are slightly abnormal. Please monitor.';
         } else if (warning.hrAbnormal) {
-          // Only HR abnormal (warning level)
+          // Only HR abnormal (40-50 or 120-150)
           alertType = 'Warning: Abnormal Heart Rate';
           message = `Heart rate is ${warning.hrAbnormal < 50 ? 'slightly low' : 'slightly high'}. Blood oxygen level is normal.`;
         } else if (warning.spo2Abnormal) {
-          // Only SpO2 abnormal (warning level)
+          // Only SpO2 abnormal (88-92)
           alertType = 'Warning: Low SpO2';
           message = 'Blood oxygen level is slightly low. Heart rate is normal.';
         }
