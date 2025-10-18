@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Platform, PermissionsAndroid } from 'react-native';
 import { useTheme, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useHealth } from '../context/HealthContext';
-import { Platform } from 'react-native';
 
 type BluetoothDevice = {
   id: string;
@@ -25,10 +24,51 @@ export default function DeviceSelectionScreen() {
     loadDevices();
   }, []);
 
+  const requestBluetoothPermissions = async () => {
+    if (Platform.OS !== 'android') return true;
+
+    try {
+      if (Platform.Version >= 31) {
+        // Android 12+
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        ]);
+
+        return (
+          granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED
+        );
+      } else {
+        // Android < 12
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+    } catch (err) {
+      console.error('[DeviceSelection] Permission error:', err);
+      return false;
+    }
+  };
+
   const loadDevices = async () => {
     setLoading(true);
     try {
       if (Platform.OS !== 'android') {
+        setLoading(false);
+        return;
+      }
+
+      // Request permissions first
+      const hasPermission = await requestBluetoothPermissions();
+      if (!hasPermission) {
+        Alert.alert(
+          'Permissions Required',
+          'Bluetooth and Location permissions are required to scan for devices. Please enable them in Settings.',
+          [{ text: 'OK' }]
+        );
         setLoading(false);
         return;
       }
@@ -46,7 +86,7 @@ export default function DeviceSelectionScreen() {
       })));
     } catch (e) {
       console.error('[DeviceSelection] Failed to load devices:', e);
-      Alert.alert('Error', 'Failed to load Bluetooth devices');
+      Alert.alert('Error', 'Failed to load Bluetooth devices. Make sure Bluetooth is enabled.');
     } finally {
       setLoading(false);
     }

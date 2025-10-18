@@ -6,7 +6,7 @@ import SignUpScreen from './screens/SignUpScreen';
 import { StatusBar } from 'expo-status-bar';
 import MainTabs from './navigation/MainTabs';
 import { HealthProvider } from './context/HealthContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProfileScreen from './screens/ProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
@@ -25,11 +25,16 @@ const Stack = createNativeStackNavigator();
 
 function AppShell() {
   const { appearance } = useSettings();
+  const { user } = useAuth();
   const themed = themeFromAppearance(appearance);
+  
   return (
     <NavigationContainer theme={themed}>
           <StatusBar style="dark" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Navigator 
+            screenOptions={{ headerShown: false }}
+            initialRouteName={user ? 'MainTabs' : 'Sign In'}
+          >
             <Stack.Screen name="Sign In" component={SignInScreen} />
             <Stack.Screen name="Sign Up" component={SignUpScreen} />
             <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />

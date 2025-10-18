@@ -17,17 +17,26 @@
       }
     },
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/23b78e1b-ef71-45f9-990e-e71fa34b8a9e"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/BEAR_App_Icon_Transpararent.png"
+      "icon": "./assets/BEAR_App_Icon_Transpararent.png",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
         "BLUETOOTH",
         "BLUETOOTH_ADMIN",
         "BLUETOOTH_CONNECT",
@@ -38,7 +47,8 @@
         "foregroundImage": "./assets/BEAR_App_Icon_Transpararent.png",
         "backgroundColor": "#B31B1B"
       },
-      "package": "com.bear.app"
+      "package": "com.bear.app",
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro"
