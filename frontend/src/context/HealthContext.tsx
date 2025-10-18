@@ -76,11 +76,11 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Send critical alert email to emergency contacts
+  // Send alert email to emergency contacts (both warning and critical)
   const sendCriticalAlert = async (warning: WarningItem, sample: HealthSample) => {
     // Get fresh token from auth context
     const currentToken = auth.token;
-    console.log('[HEALTH] sendCriticalAlert called, token:', currentToken ? 'exists' : 'null');
+    console.log('[HEALTH] sendCriticalAlert called, severity:', warning.severity, 'token:', currentToken ? 'exists' : 'null');
     console.log('[HEALTH] User:', auth.user ? auth.user.username : 'null');
     
     if (!currentToken) {
@@ -89,37 +89,57 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Check if we already sent alert for this type recently
-    // Critical alerts: 1 minute interval (changed from 5 minutes)
+    // Warning: 5 minutes interval, Critical: 1 minute interval
     const alertKey = `${warning.severity}-${warning.fall ? 'fall' : ''}${warning.hrAbnormal ? 'hr' : ''}${warning.spo2Abnormal ? 'spo2' : ''}`;
     const now = Date.now();
     const lastSent = lastAlertSentRef.current[alertKey] || 0;
     
-    // Critical alerts: 1 minute interval
-    if (now - lastSent < 1 * 60 * 1000) {
-      console.log('[HEALTH] Alert email already sent recently, skipping');
+    // Different intervals based on severity
+    const interval = warning.severity === 'critical' ? 1 * 60 * 1000 : 5 * 60 * 1000;
+    
+    if (now - lastSent < interval) {
+      console.log(`[HEALTH] Alert email already sent recently (${warning.severity}), skipping`);
       return;
     }
 
     try {
-      let alertType = 'Critical Health Alert';
-      let message = 'A critical health condition has been detected.';
+      let alertType = 'Health Alert';
+      let message = 'A health condition has been detected.';
 
-      // Determine alert type based on what's abnormal
+      // Determine alert type based on severity and what's abnormal
       if (warning.fall) {
         alertType = 'Fall Detected';
         message = 'A fall has been detected. Please check on the user immediately.';
-      } else if (warning.hrAbnormal && warning.spo2Abnormal) {
-        // Both abnormal
-        alertType = 'Critical Health Alert';
-        message = 'Both heart rate and blood oxygen levels are abnormal. Immediate attention required.';
-      } else if (warning.hrAbnormal) {
-        // Only HR abnormal
-        alertType = 'Critical: Abnormal Heart Rate';
-        message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}. Blood oxygen level is normal.`;
-      } else if (warning.spo2Abnormal) {
-        // Only SpO2 abnormal
-        alertType = 'Critical: Abnormal SpO2';
-        message = 'Blood oxygen level is critically low. Heart rate is normal.';
+      } else if (warning.severity === 'critical') {
+        // Critical level alerts
+        if (warning.hrAbnormal && warning.spo2Abnormal) {
+          // Both abnormal
+          alertType = 'Critical Health Alert';
+          message = 'Both heart rate and blood oxygen levels are abnormal. Immediate attention required.';
+        } else if (warning.hrAbnormal) {
+          // Only HR abnormal
+          alertType = 'Critical: Abnormal Heart Rate';
+          message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}. Blood oxygen level is normal.`;
+        } else if (warning.spo2Abnormal) {
+          // Only SpO2 abnormal
+          alertType = 'Critical: Abnormal SpO2';
+          message = 'Blood oxygen level is critically low. Heart rate is normal.';
+        }
+      } else {
+        // Warning level alerts
+        if (warning.hrAbnormal && warning.spo2Abnormal) {
+          // Both abnormal (warning level)
+          alertType = 'Warning: Health Alert';
+          message = 'Both heart rate and blood oxygen levels are slightly abnormal. Please monitor.';
+        } else if (warning.hrAbnormal) {
+          // Only HR abnormal (warning level)
+          alertType = 'Warning: Abnormal Heart Rate';
+          message = `Heart rate is ${warning.hrAbnormal < 50 ? 'slightly low' : 'slightly high'}. Blood oxygen level is normal.`;
+        } else if (warning.spo2Abnormal) {
+          // Only SpO2 abnormal (warning level)
+          alertType = 'Warning: Low SpO2';
+          message = 'Blood oxygen level is slightly low. Heart rate is normal.';
+        }
       }
 
       console.log('[HEALTH] Sending alert to API:', { 
@@ -288,10 +308,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
               setWarnings((prev) => [...prev, w]);
               lastWarningTimeRef.current[warningKey] = now;
               
-              // Send email alert for critical warnings
-              if (w.severity === 'critical') {
-                sendCriticalAlert(w, sample);
-              }
+              // Send email alert for both warning and critical
+              // Critical: every 1 minute, Warning: every 5 minutes
+              sendCriticalAlert(w, sample);
             }
           }
         } catch (e) {
