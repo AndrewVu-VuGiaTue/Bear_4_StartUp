@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useHealth } from '../context/HealthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AccountScreen() {
   const nav: any = useNavigation();
   const { colors } = useTheme();
   const { user, clear } = useAuth();
+  const health = useHealth();
   const displayName = user?.displayName || user?.username || 'Guest';
   const username = user?.username ? `@${user.username}` : '@guest';
 
@@ -16,8 +18,14 @@ export default function AccountScreen() {
     Alert.alert('Sign Out', 'Do you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign Out', style: 'destructive', onPress: () => {
-          clear();
+        text: 'Sign Out', style: 'destructive', onPress: async () => {
+          // Disconnect Bluetooth before signing out
+          clear(async () => {
+            if (health.connected) {
+              console.log('[Account] Disconnecting Bluetooth before sign out');
+              await health.disconnect();
+            }
+          });
           // Navigation will automatically update when auth state changes
         }
       }

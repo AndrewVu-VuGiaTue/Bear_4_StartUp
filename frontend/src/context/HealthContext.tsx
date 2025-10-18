@@ -323,13 +323,32 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
 
   const disconnect = async () => {
     const bt = btRef.current;
-    if (!bt) return;
-    try {
-      if (subRef.current) { try { subRef.current.remove(); } catch {} }
-      await bt.disconnect();
+    if (!bt) {
+      // Even if no device, clear all state
       setConnected(false);
+      setDeviceName(null);
+      setBattery(null);
+      return;
+    }
+    try {
+      if (subRef.current) { 
+        try { 
+          subRef.current.remove(); 
+        } catch {} 
+        subRef.current = null;
+      }
+      await bt.disconnect();
+      btRef.current = null;
+      setConnected(false);
+      setDeviceName(null);
+      setBattery(null);
+      console.log('[BT] Disconnected and cleared state');
     } catch (e) {
       console.warn('[BT] disconnect error', e);
+      // Still clear state even if disconnect fails
+      setConnected(false);
+      setDeviceName(null);
+      setBattery(null);
     }
   };
 

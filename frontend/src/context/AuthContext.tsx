@@ -13,7 +13,7 @@ export type AuthState = {
   token?: string | null;
   isLoading: boolean;
   setSession: (u: User, token?: string | null) => void;
-  clear: () => void;
+  clear: (onClearCallback?: () => void) => void;
   updateProfileLocal: (patch: Partial<User>) => void;
 };
 
@@ -64,7 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage?.setItem('bear.auth', JSON.stringify({ user: u, token: t ?? null }));
       } catch {}
     },
-    clear: () => {
+    clear: (onClearCallback?: () => void) => {
+      // Call callback first (e.g., disconnect Bluetooth)
+      if (onClearCallback) {
+        try {
+          onClearCallback();
+        } catch (err) {
+          console.error('[Auth] Error in clear callback:', err);
+        }
+      }
+      
       setUser(null);
       setToken(null);
       try { AsyncStorage?.removeItem('bear.auth'); } catch {}
