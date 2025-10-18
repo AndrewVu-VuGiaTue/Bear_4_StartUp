@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { api, authHeader } from '../api/client';
+import { useAuth } from './AuthContext';
 
 export type HealthSample = { ts: number; hr?: number; spo2?: number; steps?: number; battery?: number; totalG?: number };
 export type WarningItem = { id: string; time: Date; severity: 'warning' | 'critical'; fall?: boolean; hrAbnormal?: number; spo2Abnormal?: number };
@@ -31,6 +33,7 @@ async function loadBT() {
 }
 
 export function HealthProvider({ children }: { children: React.ReactNode }) {
+  const { token } = useAuth();
   const [connected, setConnected] = useState(false);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [battery, setBattery] = useState<number | null>(null);
@@ -40,6 +43,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   const btRef = useRef<any>(null);
   const subRef = useRef<any>(null);
   const lastWarningTimeRef = useRef<{ [key: string]: number }>({});
+  const lastAlertSentRef = useRef<{ [key: string]: number }>({});
   const [lastResetDate, setLastResetDate] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -71,6 +75,59 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, []);
+
+  // Send critical alert email to emergency contacts
+  const sendCriticalAlert = async (warning: WarningItem, sample: HealthSample) => {
+    if (!token) {
+      console.log('[HEALTH] No token, skipping alert email');
+      return;
+    }
+
+    // Check if we already sent alert for this type recently (prevent spam)
+    const alertKey = `${warning.severity}-${warning.fall ? 'fall' : ''}${warning.hrAbnormal ? 'hr' : ''}${warning.spo2Abnormal ? 'spo2' : ''}`;
+    const now = Date.now();
+    const lastSent = lastAlertSentRef.current[alertKey] || 0;
+    
+    // Only send critical alerts once every 5 minutes
+    if (now - lastSent < 5 * 60 * 1000) {
+      console.log('[HEALTH] Alert email already sent recently, skipping');
+      return;
+    }
+
+    try {
+      let alertType = 'Critical Health Alert';
+      let message = 'A critical health condition has been detected.';
+
+      if (warning.fall) {
+        alertType = 'Fall Detected';
+        message = 'A fall has been detected. Please check on the user immediately.';
+      } else if (warning.hrAbnormal && warning.spo2Abnormal) {
+        alertType = 'Critical: Heart Rate & SpO2 Abnormal';
+        message = 'Both heart rate and blood oxygen levels are abnormal.';
+      } else if (warning.hrAbnormal) {
+        alertType = 'Critical: Abnormal Heart Rate';
+        message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}.`;
+      } else if (warning.spo2Abnormal) {
+        alertType = 'Critical: Low Blood Oxygen';
+        message = 'Blood oxygen level is critically low.';
+      }
+
+      await api.post('/health/alert', {
+        alertType,
+        message,
+        heartRate: sample.hr,
+        spo2: sample.spo2,
+        temperature: null // Add if available
+      }, {
+        headers: authHeader(token)
+      });
+
+      lastAlertSentRef.current[alertKey] = now;
+      console.log('[HEALTH] Critical alert email sent successfully');
+    } catch (err) {
+      console.error('[HEALTH] Failed to send alert email:', err);
+    }
+  };
 
   const connect = async (opts?: { address?: string; namePrefix?: string }) => {
     const bt = await loadBT();
@@ -211,6 +268,11 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
             if (now - lastTime >= interval) {
               setWarnings((prev) => [...prev, w]);
               lastWarningTimeRef.current[warningKey] = now;
+              
+              // Send email alert for critical warnings
+              if (w.severity === 'critical') {
+                sendCriticalAlert(w, sample);
+              }
             }
           }
         } catch (e) {

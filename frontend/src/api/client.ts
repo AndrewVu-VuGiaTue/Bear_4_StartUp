@@ -46,3 +46,8 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Helper to create auth header
+export function authHeader(token?: string | null) {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
