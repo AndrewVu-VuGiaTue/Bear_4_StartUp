@@ -36,9 +36,10 @@ function AppShell() {
   return (
     <NavigationContainer theme={themed}>
           <StatusBar style="dark" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {user ? (
-              <>
+          {user ? (
+            // Only provide HealthContext when user is authenticated
+            <HealthProvider key={user.id || user.username}>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="MainTabs" component={MainTabs} />
                 <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="Notifications" component={NotificationsScreen} />
@@ -47,18 +48,18 @@ function AppShell() {
                 <Stack.Screen name="Appearance" component={AppearanceScreen} />
                 <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
                 <Stack.Screen name="DeviceSelection" component={DeviceSelectionScreen} />
-              </>
-            ) : (
-              <>
-                <Stack.Screen name="Sign In" component={SignInScreen} />
-                <Stack.Screen name="Sign Up" component={SignUpScreen} />
-                <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />
-                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-                <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
-                <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-              </>
-            )}
-          </Stack.Navigator>
+              </Stack.Navigator>
+            </HealthProvider>
+          ) : (
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Sign In" component={SignInScreen} />
+              <Stack.Screen name="Sign Up" component={SignUpScreen} />
+              <Stack.Screen name="SignUpOTP" component={SignUpOTPScreen} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+              <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
+              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            </Stack.Navigator>
+          )}
     </NavigationContainer>
   );
 }
@@ -68,9 +69,7 @@ export default function App() {
     <AuthProvider>
       <SettingsProvider>
         <ThemeProvider>
-          <HealthProvider>
-            <AppShell />
-          </HealthProvider>
+          <AppShell />
         </ThemeProvider>
       </SettingsProvider>
     </AuthProvider>

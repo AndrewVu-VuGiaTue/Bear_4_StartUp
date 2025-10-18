@@ -25,13 +25,27 @@ router.post('/alert', authMiddleware, async (req, res) => {
       });
     }
 
-    // Build alert message
+    // Build alert message - always include vital signs
     let alertMessage = message || 'Critical health alert detected.';
-    if (heartRate || spo2 || temperature) {
-      alertMessage += '\n\nVital Signs:';
-      if (heartRate) alertMessage += `\n- Heart Rate: ${heartRate} BPM`;
-      if (spo2) alertMessage += `\n- SpO2: ${spo2}%`;
-      if (temperature) alertMessage += `\n- Temperature: ${temperature}°C`;
+    
+    // Always show vital signs section
+    alertMessage += '\n\nVital Signs:';
+    
+    // Always show HR and SpO2 (even if null, show as "N/A")
+    if (heartRate !== null && heartRate !== undefined) {
+      alertMessage += `\n- Heart Rate: ${heartRate} BPM`;
+    } else {
+      alertMessage += `\n- Heart Rate: N/A`;
+    }
+    
+    if (spo2 !== null && spo2 !== undefined) {
+      alertMessage += `\n- SpO2: ${spo2}%`;
+    } else {
+      alertMessage += `\n- SpO2: N/A`;
+    }
+    
+    if (temperature !== null && temperature !== undefined) {
+      alertMessage += `\n- Temperature: ${temperature}°C`;
     }
 
     // Send email to all emergency contacts

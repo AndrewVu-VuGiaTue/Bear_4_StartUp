@@ -112,8 +112,26 @@ If you didn't request this, please ignore this email or contact support if you h
   }
 }
 
+// Format timestamp to UTC+7 (Vietnam timezone)
+function formatTimestampUTC7(timestamp) {
+  const date = new Date(timestamp);
+  // Convert to UTC+7
+  const utc7Date = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+  
+  // Format: DD/MM/YYYY, HH:MM:SS
+  const day = String(utc7Date.getUTCDate()).padStart(2, '0');
+  const month = String(utc7Date.getUTCMonth() + 1).padStart(2, '0');
+  const year = utc7Date.getUTCFullYear();
+  const hours = String(utc7Date.getUTCHours()).padStart(2, '0');
+  const minutes = String(utc7Date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(utc7Date.getUTCSeconds()).padStart(2, '0');
+  
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} (UTC+7)`;
+}
+
 // Send critical health alert email to emergency contacts
 export async function sendCriticalAlertEmail(to, userName, alertType, alertMessage, timestamp) {
+  const formattedTime = formatTimestampUTC7(timestamp);
   const mailOptions = {
     to,
     from: {
@@ -127,7 +145,7 @@ CRITICAL HEALTH ALERT
 
 User: ${userName}
 Alert Type: ${alertType}
-Time: ${new Date(timestamp).toLocaleString()}
+Time: ${formattedTime}
 
 ${alertMessage}
 
@@ -159,7 +177,7 @@ Please check on ${userName} immediately.
             </tr>
             <tr>
               <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; color: #666;">Time:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #eee; color: #333;">${new Date(timestamp).toLocaleString()}</td>
+              <td style="padding: 10px; border-bottom: 1px solid #eee; color: #333;">${formattedTime}</td>
             </tr>
           </table>
           <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">

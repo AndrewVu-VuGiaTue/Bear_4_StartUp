@@ -88,13 +88,14 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check if we already sent alert for this type recently (prevent spam)
+    // Check if we already sent alert for this type recently
+    // Critical alerts: 1 minute interval (changed from 5 minutes)
     const alertKey = `${warning.severity}-${warning.fall ? 'fall' : ''}${warning.hrAbnormal ? 'hr' : ''}${warning.spo2Abnormal ? 'spo2' : ''}`;
     const now = Date.now();
     const lastSent = lastAlertSentRef.current[alertKey] || 0;
     
-    // Only send critical alerts once every 5 minutes
-    if (now - lastSent < 5 * 60 * 1000) {
+    // Critical alerts: 1 minute interval
+    if (now - lastSent < 1 * 60 * 1000) {
       console.log('[HEALTH] Alert email already sent recently, skipping');
       return;
     }
@@ -103,27 +104,38 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       let alertType = 'Critical Health Alert';
       let message = 'A critical health condition has been detected.';
 
+      // Determine alert type based on what's abnormal
       if (warning.fall) {
         alertType = 'Fall Detected';
         message = 'A fall has been detected. Please check on the user immediately.';
       } else if (warning.hrAbnormal && warning.spo2Abnormal) {
-        alertType = 'Critical: Heart Rate & SpO2 Abnormal';
-        message = 'Both heart rate and blood oxygen levels are abnormal.';
+        // Both abnormal
+        alertType = 'Critical Health Alert';
+        message = 'Both heart rate and blood oxygen levels are abnormal. Immediate attention required.';
       } else if (warning.hrAbnormal) {
+        // Only HR abnormal
         alertType = 'Critical: Abnormal Heart Rate';
-        message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}.`;
+        message = `Heart rate is ${warning.hrAbnormal < 50 ? 'too low' : 'too high'}. Blood oxygen level is normal.`;
       } else if (warning.spo2Abnormal) {
-        alertType = 'Critical: Low Blood Oxygen';
-        message = 'Blood oxygen level is critically low.';
+        // Only SpO2 abnormal
+        alertType = 'Critical: Abnormal SpO2';
+        message = 'Blood oxygen level is critically low. Heart rate is normal.';
       }
 
-      console.log('[HEALTH] Sending alert to API:', { alertType, heartRate: sample.hr, spo2: sample.spo2 });
+      console.log('[HEALTH] Sending alert to API:', { 
+        alertType, 
+        heartRate: sample.hr, 
+        spo2: sample.spo2,
+        hrAbnormal: warning.hrAbnormal,
+        spo2Abnormal: warning.spo2Abnormal
+      });
       
+      // Always send both HR and SpO2 values
       const response = await api.post('/health/alert', {
         alertType,
         message,
-        heartRate: sample.hr,
-        spo2: sample.spo2,
+        heartRate: sample.hr || null,
+        spo2: sample.spo2 || null,
         temperature: null // Add if available
       }, {
         headers: authHeader(currentToken)
