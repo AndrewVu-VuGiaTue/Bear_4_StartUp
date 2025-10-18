@@ -27,28 +27,67 @@ eas build:configure
 - Chọn platform: **Android**
 - Sẽ tự động tạo file `eas.json` (đã có sẵn)
 
-### **Bước 4: Build APK**
+### **Bước 4: Build APK/AAB**
 
-**Build Preview (Test):**
-```bash
-eas build --platform android --profile preview
-```
-
-**Build Production (Release):**
+**Option 1: Build AAB (Khuyến nghị - Ổn định nhất):**
 ```bash
 eas build --platform android --profile production
 ```
+- File AAB (~30MB) - Dùng cho Google Play Store
+- Hoặc convert sang APK bằng [bundletool](https://github.com/google/bundletool)
+
+**Option 2: Build APK trực tiếp:**
+```bash
+eas build --platform android --profile apk
+```
+- File APK (~50-100MB) - Cài trực tiếp trên điện thoại
+- Có thể gặp lỗi với một số dependencies
+
+**Option 3: Build Preview (Test nhanh):**
+```bash
+eas build --platform android --profile preview
+```
+- Build AAB cho testing
 
 ### **Bước 5: Đợi build hoàn thành**
 - Build trên cloud, mất khoảng 10-20 phút
 - Theo dõi progress tại: https://expo.dev/accounts/[your-account]/projects/bear/builds
 - Sau khi xong, download file APK
 
-### **Bước 6: Cài đặt APK**
+### **Bước 6: Cài đặt**
+
+**Nếu build APK:**
 1. Download APK về điện thoại
 2. Mở file APK
 3. Cho phép "Install from unknown sources"
 4. Cài đặt và sử dụng!
+
+**Nếu build AAB (cần convert sang APK):**
+
+**Cách 1: Dùng EAS Submit (Tự động):**
+```bash
+eas submit --platform android
+```
+- Upload lên Google Play Console
+- Google tự động tạo APK cho từng thiết bị
+
+**Cách 2: Convert thủ công bằng bundletool:**
+```bash
+# Download bundletool
+curl -L -o bundletool.jar https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar
+
+# Convert AAB sang APK
+java -jar bundletool.jar build-apks --bundle=app-release.aab --output=app.apks --mode=universal
+
+# Extract APK
+unzip app.apks -d output
+# File APK ở: output/universal.apk
+```
+
+**Cách 3: Dùng online tool:**
+- https://www.apkmirror.com/apk-tools/aab-to-apk-converter/
+- Upload file AAB
+- Download APK
 
 ---
 

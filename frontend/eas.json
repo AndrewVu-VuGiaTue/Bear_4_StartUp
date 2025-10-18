@@ -9,14 +9,14 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
+      "autoIncrement": true
+    },
+    "apk": {
       "android": {
+        "gradleCommand": ":app:assembleRelease",
         "buildType": "apk"
       }
     }
